@@ -1,0 +1,1 @@
+export { CombinedPayrollCalculator } from './combined-payroll';

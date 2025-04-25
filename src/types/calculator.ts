@@ -1,5 +1,7 @@
 // Common types used across calculator components
-export type CalculatorType = 'employer-ni' | 'employee-savings' | 'p11d-ev-car' | 'childcare-vouchers' | 'holiday-trading' | 'business-roi';
+import { CombinedPayrollInputs, PayrollSystemResults, ManagedPayrollResults } from './combinedPayrollTypes';
+
+export type CalculatorType = 'employer-ni' | 'employee-savings' | 'p11d-ev-car' | 'childcare-vouchers' | 'holiday-trading' | 'business-roi' | 'combined-payroll';
 
 export interface FormValues {
   grossSalary?: number | string;
@@ -48,10 +50,16 @@ export interface BusinessRoiResult {
   paybackPeriod: number;
 }
 
+export interface CombinedPayrollResult {
+  payrollSystemResults: PayrollSystemResults;
+  managedPayrollResults: ManagedPayrollResults;
+}
+
 export type Scenario =
   | { id: string; name: string; calculator: 'employer-ni'; formValues: FormValues | null; calcResult: EmployerNIResult | null; }
   | { id: string; name: string; calculator: 'employee-savings'; formValues: FormValues | null; calcResult: EmployeeSavingsResult | null; }
   | { id: string; name: string; calculator: 'p11d-ev-car'; formValues: FormValues | null; calcResult: P11dEvCarResult | null; }
   | { id: string; name: string; calculator: 'childcare-vouchers'; formValues: FormValues | null; calcResult: ChildcareVouchersResult | null; }
   | { id: string; name: string; calculator: 'holiday-trading'; formValues: FormValues | null; calcResult: HolidayTradingResult | null; }
-  | { id: string; name: string; calculator: 'business-roi'; formValues: FormValues | null; calcResult: BusinessRoiResult | null; };
+  | { id: string; name: string; calculator: 'business-roi'; formValues: FormValues | null; calcResult: BusinessRoiResult | null; }
+  | { id: string; name: string; calculator: 'combined-payroll'; formValues: CombinedPayrollInputs | null; calcResult: CombinedPayrollResult | null; };

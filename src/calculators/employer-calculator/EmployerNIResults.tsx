@@ -1,14 +1,21 @@
 import React from 'react';
 import InfoBox from '../../components/ui/InfoBox';
 import ResultHighlight from '../../components/ui/ResultHighlight';
-import { BenefitType, CalculationResult } from '../../lib/calculationFunctions';
+import { BenefitType } from '../../calculation-engine/types';
+import { CalculationResult } from '../../calculation-engine/types';
 
 interface EmployerNIResultsProps {
   result: CalculationResult;
   employeeCount: number;
   averageSalary: number;
   taxYear: string;
-  benefitConfig: Record<string, any>;
+  benefitConfig: {
+    [key: string]: {
+      enabled: boolean;
+      contributionValue: number;
+      participationRate: number;
+    };
+  };
 }
 
 const benefitNames = {
@@ -44,22 +51,16 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
     ? ((result.originalNI - result.reducedNI) / result.originalNI) * 100
     : 0;
 
-  // Get pension contribution rate safely (fixing the undefined% issue)
+  // Get pension contribution rate safely
   const getPensionContributionRate = () => {
-    const pensionConfig = benefitConfig[BenefitType.PENSION];
-    return pensionConfig?.enabled && !isNaN(pensionConfig?.contributionValue) 
-      ? `${pensionConfig.contributionValue}%` 
-      : '0%';
+    return benefitConfig?.[BenefitType.PENSION]?.contributionValue || 0;
   };
-
-  const pensionRate = getPensionContributionRate();
 
   return (
     <div>
       <div className="mb-4">
         <InfoBox title="Calculation Summary">
-          Based on {employeeCount} employees with an average salary of {formatCurrency(averageSalary)} 
-          and a pension contribution of {pensionRate} for the {taxYear} tax year.
+          Based on {employeeCount} employees with an average salary of £{Number(averageSalary).toLocaleString()} and an average contribution of {getPensionContributionRate()}% for the {taxYear} tax year.
         </InfoBox>
       </div>
 
@@ -111,7 +112,7 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
               </tr>
             </thead>
             <tbody>
-              {Object.entries(result.benefitBreakdown)
+              {Object.entries(result.benefitBreakdown as Record<string, { totalSavings: number }>)
                 .filter(([, savings]) => savings.totalSavings > 0)
                 .map(([benefitType, savings]) => {
                   const percentage = (savings.totalSavings / result.annualSavings) * 100;
@@ -137,7 +138,7 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
         <h3 className="text-lg font-semibold mb-3">What This Means</h3>
         <InfoBox variant="success">
           <p>Your organisation can save <strong>{formatCurrency(result.annualSavings)}</strong> annually in employer National Insurance contributions through salary sacrifice arrangements.</p>
-          <p className="mt-2">These savings are calculated based on the employer NI rate of 13.8% on earnings above the Secondary Threshold (£9,100 per annum).</p>
+          <p className="mt-2">These savings are calculated based on the employer NI rate of 15% on earnings above the Secondary Threshold (£5,000 per annum) for the {taxYear} tax year.</p>
           <p className="mt-2">Implementing these benefits can provide significant cost savings while also enhancing your employee benefits package.</p>
         </InfoBox>
       </div>

@@ -9,9 +9,6 @@ interface CalculatorInfo {
   benefits: string[];
 }
 
-// Define the calculators that are actually implemented and ready to use
-const IMPLEMENTED_CALCULATORS = ['employer-ni', 'employee-savings', 'business-roi'];
-
 export const calculatorData: CalculatorInfo[] = [
   { 
     type: 'employer-ni', 
@@ -51,15 +48,16 @@ export const calculatorData: CalculatorInfo[] = [
     ]
   },
   { 
-    type: 'childcare-vouchers', 
-    title: 'Childcare Vouchers Savings Calculator',
-    description: 'Estimate savings from childcare voucher salary sacrifice. Calculate tax benefits for employees with children in qualifying childcare.',
-    iconSvg: '<path d="M15 19C15 16.7909 13.2091 15 11 15C8.79086 15 7 16.7909 7 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="11" cy="10" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M18 8L18 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M21 11L15 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>',
-    gradient: 'from-amber-500 to-amber-400',
+    type: 'combined-payroll', 
+    title: 'Payroll ROI Calculator',
+    description: 'Compare the ROI of implementing a new payroll system versus outsourcing to a managed payroll service. Make informed decisions for your payroll operations.',
+    iconSvg: '<path d="M7 16H7.01M11 16H11.01M7 12H7.01M11 12H11.01M7 8H7.01M11 8H11.01M15 8H15.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 9.5V5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>',
+    gradient: 'from-cyan-600 to-cyan-500',
     benefits: [
-      'Understand tax & NI savings on childcare costs',
-      'Calculate monthly and annual benefit values',
-      'Compare with other childcare support schemes'
+      'Compare in-house payroll systems vs. managed services',
+      'Calculate potential time and cost savings for both options',
+      'Determine payback period and long-term ROI',
+      'Make data-driven decisions for your payroll strategy'
     ]
   },
   { 
