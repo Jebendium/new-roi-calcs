@@ -9,10 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mui/icons-material": "^7.0.2",
+    "@mui/material": "^7.0.2",
+    "chart.js": "^4.4.9",
     "d3": "^7.9.0",
     "html2canvas": "^1.4.1",
     "next": "15.3.1",
     "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
     "recharts": "^2.15.3"
   },
@@ -24,8 +28,8 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
-    "tailwindcss": "^3.3.0",
     "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.0",
     "typescript": "^5"
   }
 }
