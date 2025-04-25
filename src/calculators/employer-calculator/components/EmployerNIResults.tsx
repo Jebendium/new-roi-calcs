@@ -1,0 +1,393 @@
+import React, { useState } from 'react';
+import { FormValues, EmployerNIResult } from '../../shared/types';
+import { ResultCard, ExportButton } from '../../shared/components';
+import {
+  InfoBox,
+  ResultHighlight,
+  ResultsSection,
+  Card,
+  TabNavigation
+} from '../../../components/ui';
+import { 
+  NISavingsComparisonChart, 
+  BenefitBreakdownChart, 
+  NISavingsDistributionChart,
+  MultiYearProjectionChart
+} from '../../../components/charts/EmployerNICharts';
+import { formatCurrency, formatPercentage } from '../../../utils/formatting';
+
+interface EmployerNIResultsProps {
+  result: EmployerNIResult;
+  formValues: FormValues;
+  formattedResults: any;
+  onReset: () => void;
+  onSaveScenario?: (name: string) => void;
+  showMethodologyLink?: boolean;
+}
+
+/**
+ * EmployerNIResults - Results display component for the Employer NI calculator
+ * 
+ * This component displays the calculation results and provides tabs for additional
+ * analysis and configuration options.
+ */
+const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
+  result,
+  formValues,
+  formattedResults,
+  onReset,
+  onSaveScenario,
+  showMethodologyLink = true
+}) => {
+  const [scenarioName, setScenarioName] = useState('');
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [activeResultTab, setActiveResultTab] = useState(0);
+  
+  // Handle saving a scenario
+  const handleSave = () => {
+    if (onSaveScenario && scenarioName.trim()) {
+      onSaveScenario(scenarioName.trim());
+      setShowSaveModal(false);
+      setScenarioName('');
+    }
+  };
+
+  // Fix for undefined% error - safely get pension contribution rate
+  const getPensionContributionRate = () => {
+    if (!result.benefitBreakdown?.pension) return '0%';
+    
+    const pensionConfig = result.benefitBreakdown.pension;
+    if (!pensionConfig.enabled || typeof pensionConfig.contributionValue !== 'number') {
+      return '0%';
+    }
+    
+    return `${pensionConfig.contributionValue}%`;
+  };
+
+  // Create sample projection data for demo (replace this with actual data in production)
+  const sampleProjectionData = [
+    { year: 'Year 1', employees: 100, averageSalary: 30000, annualSavings: result.annualSavings, cumulativeSavings: result.annualSavings },
+    { year: 'Year 2', employees: 105, averageSalary: 30900, annualSavings: result.annualSavings * 1.07, cumulativeSavings: result.annualSavings * 2.07 },
+    { year: 'Year 3', employees: 110, averageSalary: 31827, annualSavings: result.annualSavings * 1.15, cumulativeSavings: result.annualSavings * 3.22 },
+    { year: 'Year 4', employees: 116, averageSalary: 32782, annualSavings: result.annualSavings * 1.23, cumulativeSavings: result.annualSavings * 4.45 },
+    { year: 'Year 5', employees: 122, averageSalary: 33765, annualSavings: result.annualSavings * 1.32, cumulativeSavings: result.annualSavings * 5.77 },
+  ];
+
+  // Define result tabs
+  const resultTabs = [
+    'Overview',
+    ...(result.benefitBreakdown && Object.keys(result.benefitBreakdown).length > 0 ? ['Multi-Benefit Analysis'] : []),
+    'Multi-Year Projection'
+  ];
+  
+  return (
+    <div className="bg-white rounded-xl shadow-md p-6 mt-8">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          Employer NI Savings Results
+        </h2>
+        
+        <InfoBox title="Calculation Summary" className="mb-4">
+          Based on {formValues.employeeCount} employees with an average salary of £{Number(formValues.averageSalary).toLocaleString()} 
+          and a pension contribution of {getPensionContributionRate()} for the {formValues.taxYear} tax year.
+        </InfoBox>
+        
+        {showMethodologyLink && (
+          <p className="mt-2 text-sm">
+            <a 
+              href="/calculator/employer-ni/methodology" 
+              className="text-blue-600 hover:text-blue-800 underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View calculation methodology
+            </a>
+          </p>
+        )}
+      </div>
+
+      {/* Main Charts - always visible */}
+      <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <h3 className="text-base font-medium mb-3">NI Savings Comparison</h3>
+          <NISavingsComparisonChart 
+            originalNI={result.originalNI}
+            reducedNI={result.reducedNI}
+            niSavings={result.annualSavings}
+          />
+        </Card>
+        
+        {result.benefitBreakdown && Object.keys(result.benefitBreakdown).length > 0 && (
+          <Card>
+            <h3 className="text-base font-medium mb-3">Savings Distribution</h3>
+            <NISavingsDistributionChart 
+              benefitBreakdown={result.benefitBreakdown}
+            />
+          </Card>
+        )}
+      </div>
+      
+      <ResultsSection title="Annual Savings Summary">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <ResultHighlight
+            title="Total Annual NI Savings"
+            value={formattedResults.annualSavings}
+            description="Total employer NI contributions saved annually"
+            variant="success"
+          />
+          
+          <ResultHighlight
+            title="Savings Per Employee"
+            value={formattedResults.savingsPerEmployee}
+            description="Average annual savings per employee"
+            variant="primary"
+          />
+          
+          <ResultHighlight
+            title="Reduction in NI Liability"
+            value={formattedResults.niReduction}
+            description="Percentage reduction in employer NI contributions"
+            variant="info"
+          />
+        </div>
+      </ResultsSection>
+      
+      <ResultsSection title="National Insurance Breakdown">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ResultHighlight
+            title="Original NI Liability"
+            value={formattedResults.originalNI}
+            description="Annual employer NI liability without salary sacrifice"
+            variant="secondary"
+          />
+          
+          <ResultHighlight
+            title="Reduced NI Liability"
+            value={formattedResults.reducedNI}
+            description="Annual employer NI liability with salary sacrifice"
+            variant="success"
+          />
+        </div>
+      </ResultsSection>
+      
+      {/* Tabs navigation */}
+      <TabNavigation 
+        tabs={resultTabs}
+        activeTabIndex={activeResultTab}
+        onTabChange={setActiveResultTab}
+        className="mt-8"
+      />
+      
+      {/* Tab content */}
+      <div className="mt-6">
+        {/* Overview Tab */}
+        {activeResultTab === 0 && (
+          <div>
+            <InfoBox title="What This Means" variant="success" className="mb-6">
+              <p>
+                Your organisation can save <span className="font-semibold text-green-600">{formattedResults.annualSavings}</span> annually 
+                in employer National Insurance contributions through salary sacrifice arrangements. This represents a 
+                <span className="font-semibold"> {formattedResults.niReduction}</span> reduction in your NI liability.
+              </p>
+              <p className="mt-2">
+                These savings are calculated based on the employer NI rate of 15% on earnings above the Secondary Threshold (£5,000 per annum).
+                Implementing these benefits can provide significant cost savings while also enhancing your employee benefits package.
+              </p>
+            </InfoBox>
+          </div>
+        )}
+        
+        {/* Multi-Benefit Analysis Tab */}
+        {activeResultTab === 1 && result.benefitBreakdown && Object.keys(result.benefitBreakdown).length > 0 && (
+          <div>
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">Benefit Breakdown Analysis</h3>
+              <Card>
+                <BenefitBreakdownChart benefitBreakdown={result.benefitBreakdown} />
+              </Card>
+            </div>
+            
+            <Card className="mb-6">
+              <h4 className="font-semibold mb-2">Benefit Contributions</h4>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Benefit Type</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Participation</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">NI Savings</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Additional Savings</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Total Savings</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-200">
+                    {Object.entries(result.benefitBreakdown).map(([key, value]) => {
+                      const benefitLabels = {
+                        'pension': 'Pension',
+                        'cycle': 'Cycle to Work',
+                        'car': 'EV Car Scheme',
+                        'childcare': 'Childcare Vouchers',
+                        'holiday': 'Holiday Trading'
+                      };
+                      
+                      return (
+                        <tr key={key}>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">{benefitLabels[key] || key}</td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">{value.participationRate || 0}%</td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
+                            {formatCurrency(value.niSavings || 0)}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
+                            {formatCurrency(value.additionalSavings || 0)}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-green-600 text-right">
+                            {formatCurrency(value.totalSavings || 0)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        )}
+        
+        {/* Multi-Year Projection Tab */}
+        {activeResultTab === (result.benefitBreakdown ? 2 : 1) && (
+          <div>
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">5-Year Savings Projection</h3>
+              <Card>
+                <MultiYearProjectionChart projectionData={sampleProjectionData} />
+              </Card>
+            </div>
+            
+            <InfoBox title="Projection Assumptions" className="mb-6">
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Annual employee headcount growth: 5%</li>
+                <li>Annual salary increase: 3%</li>
+                <li>Benefits participation rate: Constant</li>
+                <li>Tax rates based on current legislation</li>
+              </ul>
+            </InfoBox>
+            
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead>
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Year</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Employees</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Avg. Salary</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Annual Savings</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Cumulative Savings</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-200">
+                    {sampleProjectionData.map((year, index) => (
+                      <tr key={index}>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">{year.year}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">{year.employees}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
+                          {formatCurrency(year.averageSalary, 0, 0)}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
+                          {formatCurrency(year.annualSavings, 0, 0)}
+                        </td>
+                        <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-green-600 text-right">
+                          {formatCurrency(year.cumulativeSavings, 0, 0)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+      
+      {/* Action buttons */}
+      <div className="mt-8 flex justify-between">
+        <button
+          type="button"
+          onClick={onReset}
+          className="px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Recalculate
+        </button>
+        
+        <div className="flex space-x-4">
+          {onSaveScenario && (
+            <button
+              type="button"
+              onClick={() => setShowSaveModal(true)}
+              className="px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Save Scenario
+            </button>
+          )}
+          
+          <ExportButton 
+            onClick={() => console.log('Export results')} 
+            label="Export Results" 
+          />
+        </div>
+      </div>
+      
+      {/* Save Scenario Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-10 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-slate-500 opacity-75"></div>
+            </div>
+            
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3 className="text-lg leading-6 font-medium text-slate-900">
+                      Save Scenario
+                    </h3>
+                    <div className="mt-4">
+                      <input
+                        type="text"
+                        placeholder="Scenario name"
+                        value={scenarioName}
+                        onChange={(e) => setScenarioName(e.target.value)}
+                        className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-slate-300 rounded-md"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={!scenarioName.trim()}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:bg-blue-300"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSaveModal(false)}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default EmployerNIResults;

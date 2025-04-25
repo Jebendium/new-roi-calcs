@@ -1,0 +1,25 @@
+import React from 'react';
+import { VariantType } from '../types';
+
+// Export interfaces for the components
+export interface ResultCardProps {
+  title: string;
+  value: string | number;
+  description?: string;
+  variant?: VariantType;
+}
+
+export interface ResultSectionProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+export interface ExportButtonProps {
+  onClick: () => void;
+  label?: string;
+}
+
+// Export from separate files to avoid JSX in .ts files
+export { ResultCard } from './ResultCard';
+export { ResultSection } from './ResultSection';
+export { ExportButton } from './ExportButton';

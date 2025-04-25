@@ -1,0 +1,106 @@
+/* Gradient styles for calculator cards with white text */
+/* These overrides will be imported in the global CSS file */
+
+/* Fixed height for all calculator cards */
+.calculator-card {
+  height: 550px !important; /* Fixed height for all cards */
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: white !important;
+  border-radius: 0.75rem !important; /* rounded-xl */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important; /* shadow-md */
+  transition: all 0.3s !important;
+  border: 1px solid #f1f5f9 !important; /* border border-slate-100 */
+  overflow: hidden !important;
+}
+
+.calculator-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important; /* shadow-lg */
+  transform: translateY(-3px) !important;
+}
+
+/* Fixed height for the header section */
+.calculator-card-header {
+  height: 180px !important;
+  overflow: hidden !important;
+  padding: 24px !important;
+}
+
+/* Make the content section flexible to fill available space */
+.calculator-card-content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 24px !important;
+}
+
+/* Fix for benefits list */
+.calculator-card-content ul {
+  min-height: 180px !important;
+}
+
+/* Action button container at the bottom */
+.calculator-card-footer {
+  margin-top: auto !important;
+  padding-top: 16px !important;
+  padding-bottom: 24px !important;
+}
+
+/* Make all text in calculator cards white */
+.bg-gradient-to-r.from-blue-600,
+.bg-gradient-to-r.from-purple-600,
+.bg-gradient-to-r.from-green-600,
+.bg-gradient-to-r.from-amber-500,
+.bg-gradient-to-r.from-indigo-600,
+.bg-gradient-to-r.from-rose-600 {
+  color: white !important;
+}
+
+.bg-gradient-to-r.from-blue-600 p,
+.bg-gradient-to-r.from-purple-600 p,
+.bg-gradient-to-r.from-green-600 p,
+.bg-gradient-to-r.from-amber-500 p,
+.bg-gradient-to-r.from-indigo-600 p,
+.bg-gradient-to-r.from-rose-600 p,
+.bg-gradient-to-r.from-blue-600 h3,
+.bg-gradient-to-r.from-purple-600 h3,
+.bg-gradient-to-r.from-green-600 h3,
+.bg-gradient-to-r.from-amber-500 h3,
+.bg-gradient-to-r.from-indigo-600 h3,
+.bg-gradient-to-r.from-rose-600 h3 {
+  color: white !important;
+}
+
+/* Updated gradient colors for calculator cards */
+.from-blue-600.to-blue-500 {
+  background: linear-gradient(135deg, #3366cc, #5588ee) !important;
+}
+
+.from-purple-600.to-purple-500 {
+  background: linear-gradient(135deg, #884de7, #a772ff) !important;
+}
+
+.from-green-600.to-green-500 {
+  background: linear-gradient(135deg, #2e9e5b, #45c17c) !important;
+}
+
+.from-amber-500.to-amber-400 {
+  background: linear-gradient(135deg, #e98c2d, #f5b547) !important;
+}
+
+.from-indigo-600.to-indigo-500 {
+  background: linear-gradient(135deg, #4e78e0, #7b68ee) !important;
+}
+
+.from-rose-600.to-rose-500 {
+  background: linear-gradient(135deg, #e25c67, #f07f8a) !important;
+}
+
+/* Fix for CTA section text */
+.bg-gradient-to-r.from-blue-600.to-blue-700 {
+  color: white !important;
+}
+
+.bg-gradient-to-r.from-blue-600.to-blue-700 h2,
+.bg-gradient-to-r.from-blue-600.to-blue-700 p {
+  color: white !important;
+}

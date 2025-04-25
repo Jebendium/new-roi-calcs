@@ -1,0 +1,30 @@
+{
+  "benefits": [
+    {
+      "type": "pension",
+      "participationRate": 0.7,
+      "defaultContribution": 0.05,
+      "employerContribution": 0.03
+    },
+    {
+      "type": "cycle-to-work",
+      "participationRate": 0.1,
+      "defaultContribution": 500
+    },
+    {
+      "type": "ev-car",
+      "participationRate": 0.05,
+      "defaultContribution": 3500
+    },
+    {
+      "type": "childcare-vouchers",
+      "participationRate": 0.07,
+      "defaultContribution": 243
+    },
+    {
+      "type": "holiday-trading",
+      "participationRate": 0.12,
+      "defaultContribution": 1000
+    }
+  ]
+}
