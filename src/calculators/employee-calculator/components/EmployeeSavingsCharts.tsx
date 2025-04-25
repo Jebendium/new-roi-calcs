@@ -58,7 +58,7 @@ const EmployeeSavingsCharts: React.FC<EmployeeSavingsChartsProps> = ({ result, g
     let totalSacrificeAmount = 0;
     
     // Sum up the sacrifice amounts
-    Object.entries(benefitBreakdown).forEach(([benefitType, data]) => {
+    Object.entries(benefitBreakdown).forEach(([_benefitType, data]) => {
       // Actual amount sacrificed is tax savings + NI savings divided by respective rates
       // This is a simplification - in a real scenario, we would use the exact sacrifice amounts
       // For this visualization, we'll use the total savings divided by average tax rate as an approximation
@@ -182,7 +182,7 @@ const EmployeeSavingsCharts: React.FC<EmployeeSavingsChartsProps> = ({ result, g
               </ResponsiveContainer>
             </div>
             <div className="mt-2 text-xs text-slate-500">
-              <p>This chart shows the tax and NI savings for each benefit you've selected.</p>
+              <p>This chart shows the tax and NI savings for each benefit you&apos;ve selected.</p>
             </div>
           </div>
         )}

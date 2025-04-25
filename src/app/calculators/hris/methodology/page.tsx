@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
 // Import separate tab components
 import { OverviewTab } from './components/OverviewTab';
@@ -16,7 +15,6 @@ import { IndustryBenchmarksTab } from './components/IndustryBenchmarksTab';
  * Explains how the HRIS ROI Calculator works
  */
 export default function HRISMethodologyPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState(0);
 
   const tabs = [

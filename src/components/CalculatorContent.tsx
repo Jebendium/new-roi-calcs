@@ -109,7 +109,7 @@ const CalculatorContent: React.FC<CalculatorContentProps> = ({ calculatorType })
             <h3 className="text-lg font-semibold mb-4 text-slate-800">What This Means For You</h3>
             <div className="text-slate-600 space-y-4">
               <p>
-                Based on your inputs, we've calculated the financial impact of this benefit option. 
+                Based on your inputs, we&apos;ve calculated the financial impact of this benefit option. 
                 The results above show the potential savings and ROI you could achieve.
               </p>
               <p>

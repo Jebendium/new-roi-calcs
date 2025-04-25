@@ -111,7 +111,7 @@ export default function EmployerNIMethodologyPage() {
           </p>
           
           <p className="text-base mb-4 text-slate-700">
-            The calculator uses the current tax year's NI rates and thresholds to determine how much an employer
+            The calculator uses the current tax year&apos;s NI rates and thresholds to determine how much an employer
             could save based on their workforce size, average salary, and the benefits they choose to implement.
           </p>
           
@@ -129,7 +129,7 @@ export default function EmployerNIMethodologyPage() {
           
           <p className="text-base mt-4 text-slate-700">
             Each benefit is calculated based on typical participation rates and contribution levels,
-            which you can adjust to match your organisation's specific circumstances.
+            which you can adjust to match your organisation&apos;s specific circumstances.
           </p>
         </div>
       )}

@@ -7,7 +7,7 @@ export const InterpretingResultsTab = () => {
     <div>
       <h2 className="text-xl font-semibold text-slate-800 mb-4">Interpreting Your Results</h2>
       <p className="text-slate-600 mb-6">
-        The calculator provides several key metrics to help you evaluate the potential value of an HRIS implementation. Here's how to interpret and use these results effectively:
+        The calculator provides several key metrics to help you evaluate the potential value of an HRIS implementation. Here&apos;s how to interpret and use these results effectively:
       </p>
 
       <div className="space-y-6">

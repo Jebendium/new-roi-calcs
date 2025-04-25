@@ -36,7 +36,7 @@ export const IndustryBenchmarksTab = () => {
     <div>
       <h2 className="text-xl font-semibold text-slate-800 mb-4">Industry Benchmarks</h2>
       <p className="text-slate-600 mb-6">
-        Our calculator includes an option to use industry benchmarks based on research from CIPD (Chartered Institute of Personnel and Development) and CIPP (Chartered Institute of Payroll Professionals). These benchmarks provide realistic starting points if you're unsure about specific inputs.
+        Our calculator includes an option to use industry benchmarks based on research from CIPD (Chartered Institute of Personnel and Development) and CIPP (Chartered Institute of Payroll Professionals). These benchmarks provide realistic starting points if you&apos;re unsure about specific inputs.
       </p>
 
       <div className="overflow-x-auto mb-8">
@@ -121,10 +121,10 @@ export const IndustryBenchmarksTab = () => {
       <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
         <h3 className="font-medium text-blue-800 mb-2">Using Industry Benchmarks</h3>
         <p className="text-blue-700 mb-3">
-          The "Use CIPD/CIPP industry benchmarks" toggle in the calculator pre-populates fields with these benchmark values. We recommend:
+          The &quot;Use CIPD/CIPP industry benchmarks&quot; toggle in the calculator pre-populates fields with these benchmark values. We recommend:
         </p>
         <ol className="list-decimal ml-5 space-y-1 text-blue-700">
-          <li>Starting with benchmarks if you're unsure about specific inputs</li>
+          <li>Starting with benchmarks if you&apos;re unsure about specific inputs</li>
           <li>Adjusting values to reflect your specific organizational context</li>
           <li>Creating multiple scenarios (conservative, moderate, optimistic) by varying key inputs</li>
           <li>Seeking additional data from potential HRIS vendors to refine your estimates</li>

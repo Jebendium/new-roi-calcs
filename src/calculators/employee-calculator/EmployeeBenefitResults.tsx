@@ -50,8 +50,6 @@ const formatBenefitType = (type: string): string => {
 
 const EmployeeBenefitResults: React.FC<EmployeeBenefitResultsProps> = ({
   result,
-  annualSalary,
-  taxRegion,
   includeProjection,
   className
 }) => {
@@ -170,7 +168,7 @@ const EmployeeBenefitResults: React.FC<EmployeeBenefitResultsProps> = ({
           through salary sacrifice benefits, increasing your monthly take-home pay by <strong>{formatCurrency(result.monthlyTakeHomeIncrease)}</strong>.
         </p>
         <p className="mt-2">
-          These savings come from reduced income tax and National Insurance contributions, which vary based on your tax bracket and the benefits you've selected.
+          These savings come from reduced income tax and National Insurance contributions, which vary based on your tax bracket and the benefits you&apos;ve selected.
         </p>
         <p className="mt-2">
           The tax and NI savings can effectively reduce the cost of benefits like pension contributions, cycle to work schemes, and more.
