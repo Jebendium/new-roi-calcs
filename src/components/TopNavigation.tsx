@@ -98,9 +98,12 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               )}
             </div>
             
-            <button className="ml-4 px-4 py-2 text-slate-600 hover:text-blue-600 font-medium">
+            <Link
+              href="/resources"
+              className="ml-4 px-4 py-2 text-slate-600 hover:text-blue-600 font-medium"
+            >
               Resources
-            </button>
+            </Link>
             
             <button className="ml-4 px-4 py-2 text-slate-600 hover:text-blue-600 font-medium">
               About
@@ -161,9 +164,13 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               </Link>
             ))}
             
-            <button className="w-full text-left px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-md">
+            <Link
+              href="/resources"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full text-left block px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-md"
+            >
               Resources
-            </button>
+            </Link>
             
             <button className="w-full text-left px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-md">
               About
