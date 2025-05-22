@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/update-news?cron_secret=mediastack_cron_2025_secure_key",
+      "path": "/api/update-news-edge?cron_secret=mediastack_cron_2025_secure_key",
       "schedule": "0 5 * * *"
     }
   ]
