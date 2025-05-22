@@ -75,9 +75,6 @@ const EmployeeSavingsResults: React.FC<EmployeeSavingsResultsProps> = ({
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mt-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">
-          Employee Tax & NI Savings Results
-        </h2>
         <p className="text-slate-600">
           Based on £{Number(formValues.grossSalary).toLocaleString()} annual salary 
           ({formValues.taxRegion === 'scotland' ? 'Scottish' : 'UK'} tax rates for {formValues.taxYear})

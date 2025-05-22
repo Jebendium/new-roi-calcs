@@ -1,0 +1,505 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { WizardShell } from '../../../components/WizardShell';
+import { ArticleCard } from './components/ArticleCard';
+import { TrendingTopics } from './components/TrendingTopics';
+// Removed unused LoadingSkeleton import
+import { FilterControls } from './components/FilterControls';
+import { Pagination } from './components/Pagination';
+import { NoResultsMessage } from './components/NoResultsMessage';
+import { NewsLoadingMessage } from './components/NewsLoadingMessage';
+import { ProgressiveContent } from './components/ProgressiveContent';
+import { useNewsData } from './hooks/useNewsData';
+import { formatDate } from './utils/formatDate';
+import type { Article } from './types';
+
+// Local storage cache key
+const LOCAL_STORAGE_CACHE_KEY = 'industry-news-cache';
+
+export default function IndustryNews() {
+  const router = useRouter();
+  
+  // State for data and UI
+  const { 
+    feedResponse, 
+    partialData,
+    loading, 
+    initialLoad, 
+    error, 
+    isRefreshing, 
+    loadingProgress,
+    loadingStage,
+    handleRefresh 
+  } = useNewsData(LOCAL_STORAGE_CACHE_KEY);
+  
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeSentiment, setActiveSentiment] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [viewMode, setViewMode] = useState<boolean>(true); // true = category view, false = topic view
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const articlesPerPage = 12; // Increased from 10 to 12 articles per page
+  
+  // Use this to track which articles have their summaries expanded
+  const [expandedSummaries, setExpandedSummaries] = useState<{[key: string]: boolean}>({});
+
+  // Toggle summary expansion
+  const toggleSummaryExpansion = (articleId: string) => {
+    setExpandedSummaries(prev => ({
+      ...prev,
+      [articleId]: !prev[articleId]
+    }));
+  };
+  
+  // Handle topic click from trending topics
+  const handleTopicClick = (topic: string) => {
+    setSearchQuery(topic);
+    setCurrentPage(1); // Reset to page 1 when changing search
+  };
+  
+  // Get all articles across all feeds
+  const getAllArticles = (): Article[] => {
+    if (!feedResponse || !feedResponse.feeds || !Array.isArray(feedResponse.feeds)) return [];
+    
+    return feedResponse.feeds
+      .filter(feed => feed && feed.items && Array.isArray(feed.items))
+      .flatMap(feed => 
+        feed.items.map(item => ({
+          ...item,
+          category: feed.category,
+          // Ensure all required Article properties exist
+          title: item.title || 'Untitled',
+          link: item.link || '#',
+          pubDate: item.pubDate || new Date().toISOString(),
+          content: item.content || '',
+          summary: item.summary || '',
+          source: item.source || 'Unknown Source',
+          sentiment: item.sentiment || 'neutral',
+          sentimentScore: item.sentimentScore || 0,
+          topics: item.topics || []
+        } as Article))
+      )
+      .sort((a, b) => {
+        // Sort by date, newest first
+        return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+      });
+  };
+  
+  // Get filtered articles
+  const getFilteredArticles = (): Article[] => {
+    let articles = getAllArticles();
+    
+    // If no articles, return empty array
+    if (!articles || articles.length === 0) {
+      return [];
+    }
+    
+    // Apply category filter
+    if (activeCategory && activeCategory !== 'All Categories') {
+      articles = articles.filter(article => article.category === activeCategory);
+    } else {
+      // When no category is selected, limit articles per category
+      // Increased from 3 to 4 articles per category
+      const articlesPerCategoryLimit = 4; 
+      const categoriesMap: Record<string, Article[]> = {};
+      const limitedArticles: Article[] = [];
+      
+      // Group articles by category
+      articles.forEach(article => {
+        const category = article.category;
+        if (!categoriesMap[category]) {
+          categoriesMap[category] = [];
+        }
+        categoriesMap[category].push(article);
+      });
+      
+      // Take only the most recent N articles from each category
+      Object.keys(categoriesMap).forEach(category => {
+        // Sort by date (newest first) before taking the first N
+        const sorted = categoriesMap[category].sort((a, b) => 
+          new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
+        );
+        limitedArticles.push(...sorted.slice(0, articlesPerCategoryLimit));
+      });
+      
+      articles = limitedArticles;
+    }
+    
+    // Apply sentiment filter
+    if (activeSentiment && activeSentiment !== 'All Sentiments') {
+      articles = articles.filter(article => article.sentiment === activeSentiment.toLowerCase());
+    }
+    
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      articles = articles.filter(article => 
+        article.title.toLowerCase().includes(query) || 
+        article.summary.toLowerCase().includes(query) ||
+        (article.topics && article.topics.some(topic => topic.toLowerCase().includes(query)))
+      );
+    }
+    
+    return articles;
+  };
+  
+  // Get total number of pages
+  const getTotalPages = () => {
+    const filteredArticles = getFilteredArticles();
+    return Math.ceil(filteredArticles.length / articlesPerPage);
+  };
+
+  // Get articles for the current page
+  const getPaginatedArticles = (): Article[] => {
+    const filteredArticles = getFilteredArticles();
+    const indexOfLastArticle = currentPage * articlesPerPage;
+    const indexOfFirstArticle = indexOfLastArticle - articlesPerPage;
+    return filteredArticles.slice(indexOfFirstArticle, indexOfLastArticle);
+  };
+
+  // Handle page change
+  const handlePageChange = (pageNumber: number) => {
+    // Ensure page number is within bounds
+    setCurrentPage(Math.max(1, Math.min(pageNumber, getTotalPages())));
+    // Scroll back to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const totalPages = getTotalPages();
+    
+    if (totalPages <= 5) {
+      // If 5 pages or fewer, show all page numbers
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    
+    // Otherwise, show a limited set with ellipsis
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, '...', totalPages];
+    } else if (currentPage >= totalPages - 2) {
+      return [1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    } else {
+      return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+    }
+  };
+  
+  // Group articles by category
+  const getArticlesByCategory = () => {
+    const articles = getPaginatedArticles(); // Use paginated articles
+    const grouped: Record<string, Article[]> = {};
+    
+    articles.forEach(article => {
+      const category = article.category;
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(article);
+    });
+    
+    return grouped;
+  };
+  
+  // Group articles by topic
+  const getArticlesByTopic = () => {
+    const articles = getPaginatedArticles(); // Use paginated articles
+    const grouped: Record<string, Article[]> = {};
+    
+    articles.forEach(article => {
+      if (article.topics && article.topics.length > 0) {
+        article.topics.forEach(topic => {
+          if (!grouped[topic]) {
+            grouped[topic] = [];
+          }
+          grouped[topic].push(article);
+        });
+      } else {
+        // For articles without topics, add to "Uncategorized"
+        if (!grouped["Uncategorized"]) {
+          grouped["Uncategorized"] = [];
+        }
+        grouped["Uncategorized"].push(article);
+      }
+    });
+    
+    return grouped;
+  };
+  
+  // Extract categories from feeds
+  const getCategories = () => {
+    if (!feedResponse || !feedResponse.feeds || !Array.isArray(feedResponse.feeds)) return ['All Categories'];
+    
+    const categories = Array.from(new Set(feedResponse.feeds.map(feed => feed.category)));
+    return ['All Categories', ...categories];
+  };
+  
+  // Get trending topics
+  const getTrendingTopics = () => {
+    if (!feedResponse || !feedResponse.topics || !feedResponse.topics.trendingTopics) return [];
+    return feedResponse.topics.trendingTopics.map(topic => ({
+      name: topic.name,
+      count: topic.count,
+      sentiment: topic.sentiment
+    }));
+  };
+
+  // Check if we have any articles to display
+  const hasArticles = () => {
+    return getAllArticles().length > 0;
+  };
+
+  // Check if filtered articles exist
+  const hasFilteredArticles = () => {
+    return getFilteredArticles().length > 0;
+  };
+
+  return (
+    <WizardShell
+      activeCalculator={null}
+      onSelectCalculator={(calculatorType) => router.push(`/calculator/${calculatorType}`)}
+      onGoHome={() => router.push('/')}
+    >
+      <div className="container mx-auto py-8 px-4">
+        <div className="mb-8">
+          <Link 
+            href="/resources"
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+          >
+            <svg className="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+            </svg>
+            Back to Resources
+          </Link>
+          
+          <h1 className="text-3xl font-bold text-slate-800 mb-4">Industry News</h1>
+          <p className="text-lg text-slate-600 mb-6">
+            Stay informed with the latest news and developments in HR, employee benefits, and payroll.
+            Our AI provides summaries to help you quickly understand the key points.
+          </p>
+          
+          {/* Last updated timestamp and refresh button */}
+          <div className="flex justify-between items-center mb-2">
+            {feedResponse && feedResponse.timestamp && (
+              <p className="text-sm text-slate-500 italic">
+                Last updated: {formatDate(feedResponse.timestamp)}
+              </p>
+            )}
+            
+            <button 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+            >
+              {isRefreshing ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                  </svg>
+                  Refresh
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Initial Loading State - Show friendly loading message */}
+        {initialLoad && loading && (
+          <NewsLoadingMessage progress={loadingProgress} stage={loadingStage} />
+        )}
+
+        {/* Error State - Only if we have no data at all */}
+        {error && !feedResponse && !partialData && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* No Data State - Only if we have no data at all */}
+        {!initialLoad && !loading && !feedResponse && !partialData && !error && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">No feeds available at the moment. Please check back later or try refreshing.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Progressive Loading State - Show partial data as it loads */}
+        {initialLoad && loading && partialData && (
+          <ProgressiveContent 
+            partialData={partialData}
+            onTopicClick={handleTopicClick}
+            expandedSummaries={expandedSummaries}
+            toggleSummaryExpansion={toggleSummaryExpansion}
+          />
+        )}
+
+        {/* Fully Loaded State - Show complete content */}
+        {(!loading || !initialLoad) && feedResponse && (
+          <>
+            {/* Master Summary Section */}
+            {feedResponse.masterSummary && feedResponse.masterSummary.length > 0 && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100 mb-8">
+                <h2 className="text-xl font-bold text-blue-800 mb-3 flex items-center">
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                  Executive Summary: Industry Key Trends
+                </h2>
+                <div className="text-slate-700 prose max-w-none">
+                  {feedResponse.masterSummary}
+                </div>
+              </div>
+            )}
+            
+            {/* Trending Topics */}
+            {feedResponse.topics && feedResponse.topics.trendingTopics && feedResponse.topics.trendingTopics.length > 0 && (
+              <TrendingTopics 
+                topics={getTrendingTopics()} 
+                onTopicClick={handleTopicClick}
+              />
+            )}
+            
+            {/* Filters and Controls - Only show if we have articles */}
+            {hasArticles() && (
+              <FilterControls 
+                activeCategory={activeCategory}
+                setActiveCategory={setActiveCategory}
+                activeSentiment={activeSentiment}
+                setActiveSentiment={setActiveSentiment}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                categories={getCategories()}
+                setCurrentPage={setCurrentPage}
+              />
+            )}
+            
+            {/* Results Count - Only show if we have filtered articles */}
+            {hasFilteredArticles() && (
+              <div className="mb-4 text-slate-600 text-sm flex justify-between items-center">
+                <div>
+                  Showing {getFilteredArticles().length} articles
+                  {searchQuery && (
+                    <span className="ml-2">matching &quot;{searchQuery}&quot;</span>
+                  )}
+                </div>
+                <div>
+                  {getFilteredArticles().length > articlesPerPage && (
+                    <span>Page {currentPage} of {getTotalPages()}</span>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Articles Display - Only show if we have any filtered articles */}
+            {hasFilteredArticles() ? (
+              <>
+                {viewMode ? (
+                  // Category View
+                  Object.entries(getArticlesByCategory()).map(([category, articles]) => (
+                    <div key={category} className="mb-8">
+                      <h3 className="text-xl font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">
+                        {category} <span className="text-slate-500 text-sm font-normal">({articles.length} articles)</span>
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {articles.map((article, index) => (
+                          <ArticleCard 
+                            key={index}
+                            article={article}
+                            isExpanded={!!expandedSummaries[article.link]}
+                            onToggleExpand={() => toggleSummaryExpansion(article.link)}
+                            formatDate={formatDate}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  // Topic View
+                  Object.entries(getArticlesByTopic()).map(([topic, articles]) => (
+                    <div key={topic} className="mb-8">
+                      <h3 className="text-xl font-bold text-slate-800 border-b border-slate-200 pb-2 mb-4">
+                        #{topic} <span className="text-slate-500 text-sm font-normal">({articles.length} articles)</span>
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {articles.map((article, index) => (
+                          <ArticleCard 
+                            key={index}
+                            article={article}
+                            isExpanded={!!expandedSummaries[article.link]}
+                            onToggleExpand={() => toggleSummaryExpansion(article.link)}
+                            formatDate={formatDate}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+                
+                {/* Pagination Controls */}
+                {getTotalPages() > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={getTotalPages()}
+                    pageNumbers={getPageNumbers()}
+                    handlePageChange={handlePageChange}
+                  />
+                )}
+              </>
+            ) : (
+              // No filtered articles match
+              <NoResultsMessage />
+            )}
+            
+            {/* No Articles at All */}
+            {!hasArticles() && !loading && !initialLoad && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">No articles available at the moment. Please check back later or try refreshing.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </WizardShell>
+  );
+}

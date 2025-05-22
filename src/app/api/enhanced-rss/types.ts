@@ -1,0 +1,71 @@
+// Enhanced RSS feed type definitions
+
+// Define interfaces for feed processing
+export interface FeedItem {
+  title?: string;
+  link?: string;
+  pubDate?: string;
+  isoDate?: string;
+  fullContent?: string;
+  content?: string | Record<string, unknown>;  // Can be a string or an object
+  contentSnippet?: string;
+  description?: string;
+  // Use unknown instead of any
+  [key: string]: unknown;
+}
+
+export interface ParsedFeed {
+  title?: string;
+  description?: string;
+  link?: string;
+  items: FeedItem[];
+  url?: string;
+  name?: string;
+  // Allow for additional properties
+  [key: string]: unknown;
+}
+
+export interface ProcessedArticle {
+  title: string;
+  link: string;
+  pubDate: string;
+  content: string;
+  summary: string;
+  sentiment: string;
+  sentimentScore: number;
+  source: string;
+  category: string;
+  topics?: string[]; // Add the topics property as optional
+}
+
+export interface FeedCategoryMap {
+  [category: string]: {
+    title: string;
+    description: string;
+    sources: string[];
+    items: ProcessedArticle[];
+  };
+}
+
+export interface EnhancedFeedResponse {
+  feedsByCategory: FeedCategoryMap;
+  allArticles: ProcessedArticle[];
+  trendingTopics: { topic: string; count: number }[];
+  masterSummary: string;
+  timestamp: string;
+}
+
+// Define the feed source interface
+export interface FeedSource {
+  url: string;
+  name: string;
+  category?: string;
+}
+
+// Define cache interface
+export interface FeedCache {
+  data: EnhancedFeedResponse | null;
+  timestamp: number;
+  partialData: Record<string, unknown>;
+  lastFeedUpdate: Record<string, number>;
+}

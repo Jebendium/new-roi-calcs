@@ -1,5 +1,4 @@
 // Business System ROI Calculation Logic
-import { TaxYearData } from '../types';
 
 /**
  * Calculate ROI for business systems such as HR, payroll, etc.
@@ -93,6 +92,8 @@ export function calculateBusinessSystemROI({
  */
 export function calculateHRISSystemROI({
   employeeCount,
+  // avgSalary is currently unused but kept for future calculations that may require it
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   avgSalary,
   hrStaffCount,
   avgHRHourlyRate,

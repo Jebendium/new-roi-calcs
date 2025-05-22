@@ -2,19 +2,22 @@
 
 import React from 'react';
 import { WizardShell } from '../components/WizardShell';
-import HomePage from '../components/HomePage';
-import { useRouter } from 'next/navigation';
+import Hero from '../components/landing/Hero';
+import BenefitsSection from '../components/landing/BenefitsSection';
+import ServicesSection from '../components/landing/ServicesSection';
+import ContactFormSection from '../components/landing/ContactFormSection';
 
 export default function Home() {
-  const router = useRouter();
-
   return (
     <WizardShell 
       activeCalculator={null}
-      onSelectCalculator={(calculatorType) => router.push(`/calculator/${calculatorType}`)}
-      onGoHome={() => router.push('/')}
+      onSelectCalculator={(calculatorType) => {}}
+      onGoHome={() => {}}
     >
-      <HomePage onSelectCalculator={(calculatorType) => router.push(`/calculator/${calculatorType}`)} />
+      <Hero />
+      <BenefitsSection />
+      <ServicesSection />
+      <ContactFormSection />
     </WizardShell>
   );
 }

@@ -1,0 +1,49 @@
+// Worker version of sentiment analysis function with updated API format
+async function analyzeSentiment(text, huggingFaceToken) {
+  try {
+    console.log("Worker: Attempting sentiment analysis for text:", text.substring(0, 50) + "...");
+    
+    // Updated URL format for Hugging Face Inference API
+    const response = await fetch('https://router.huggingface.co/distilbert-base-uncased-finetuned-sst-2-english', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${huggingFaceToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: text.substring(0, 500), // Take first 500 chars for sentiment
+      }),
+    });
+    
+    console.log("Worker: Sentiment API Response Status:", response.status);
+    
+    if (!response.ok) {
+      console.log("Worker: Sentiment API Error:", response.statusText);
+      return { sentiment: 'neutral', score: 0.5 };
+    }
+    
+    const result = await response.json();
+    console.log("Worker: Sentiment API Raw Response:", JSON.stringify(result));
+    
+    // Find the positive sentiment and its score
+    const positiveResult = result[0].find(item => item.label === 'POSITIVE');
+    const score = positiveResult ? positiveResult.score : 0.5;
+    
+    // Determine sentiment category
+    let sentiment;
+    if (score > 0.67) {
+      sentiment = 'positive';
+    } else if (score < 0.33) {
+      sentiment = 'negative';
+    } else {
+      sentiment = 'neutral';
+    }
+    
+    console.log("Worker: Final sentiment result:", { sentiment, score });
+    return { sentiment, score };
+  } catch (error) {
+    console.error('Error analyzing sentiment:', error);
+    console.log("Worker: Returning default neutral sentiment due to error");
+    return { sentiment: 'neutral', score: 0.5 };
+  }
+}

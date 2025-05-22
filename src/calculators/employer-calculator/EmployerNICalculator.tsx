@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react';
 import MultiBenefitTab from './MultiBenefitTab';
-import MultiYearProjectionTab from './MultiYearProjectionTab';
-import SalaryBandsTab from './SalaryBandsTab';
 import WhatIfScenarioTab from './WhatIfScenarioTab';
 import EmployerNIResults from './components/EmployerNIResults';
 import { BenefitType, BenefitConfig, MultiBenefitConfig } from '../../calculation-engine/types';
@@ -14,19 +12,39 @@ import { formatCurrency, formatPercentage } from '../../utils/formatting';
 
 const TAB_LABELS = [
   'Multiple Benefits',
-  'Multi-Year Projection',
-  'Salary Bands',
   'What-If Scenarios',
 ];
 
 interface EmployerNICalculatorProps {
-  onSaveScenario?: (name: string, formValues: any, result: any) => void;
-  initialValues?: any;
+  onSaveScenario?: (
+    name: string, 
+    formValues: {
+      taxYear: string;
+      employeeCount: string;
+      averageSalary: string;
+      benefitConfig: MultiBenefitConfig;
+    }, 
+    result: {
+      annualSavings: number;
+      savingsPerEmployee: number;
+      originalNI: number;
+      reducedNI: number;
+      benefitBreakdown?: Record<string, {
+        niSavings: number;
+        additionalSavings: number;
+        totalSavings: number;
+        participationRate?: number;
+        contributionValue?: number;
+      }>;
+    }
+  ) => void;
+  initialValues?: Record<string, unknown>;
   showMethodologyLink?: boolean;
 }
 
 const EmployerNICalculator: React.FC<EmployerNICalculatorProps> = ({
   onSaveScenario,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   initialValues,
   showMethodologyLink = true
 }) => {
@@ -37,10 +55,20 @@ const EmployerNICalculator: React.FC<EmployerNICalculatorProps> = ({
   const [employeeCount, setEmployeeCount] = useState('100');
   const [averageSalary, setAverageSalary] = useState('30000');
   const [benefitConfig, setBenefitConfig] = useState<MultiBenefitConfig>(getDefaultBenefitConfig());
-  const [scenarioBenefitConfig, setScenarioBenefitConfig] = useState<MultiBenefitConfig>(getDefaultBenefitConfig());
-  
-  // Initialize result state
-  const [result, setResult] = useState<any>(null);
+  const [scenarioBenefitConfig, setScenarioBenefitConfig] = useState<MultiBenefitConfig>(getDefaultBenefitConfig());  // Initialize result state
+  const [result, setResult] = useState<{
+    annualSavings: number;
+    savingsPerEmployee: number;
+    originalNI: number;
+    reducedNI: number;
+    benefitBreakdown?: Record<string, {
+      niSavings: number;
+      additionalSavings: number;
+      totalSavings: number;
+      participationRate?: number;
+      contributionValue?: number;
+    }>;
+  } | null>(null);
 
   // Handlers for form fields
   const handleTaxYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -101,16 +129,26 @@ const EmployerNICalculator: React.FC<EmployerNICalculatorProps> = ({
       setResult(calculationResult);
       
       // Show results tab
-      setActiveTab(4);
+      setActiveTab(2);
     } catch (error) {
       console.error('Calculation error:', error);
       // Handle error scenario
     }
   };
-  
-  // Format the results for display
-  const formatResults = (result: any) => {
-    if (!result) return {};
+    // Format the results for display
+  const formatResults = (result: {
+    annualSavings: number;
+    savingsPerEmployee: number;
+    originalNI: number;
+    reducedNI: number;
+  } | null) => {
+    if (!result) return {
+      annualSavings: '',
+      savingsPerEmployee: '',
+      originalNI: '',
+      reducedNI: '',
+      niReduction: ''
+    };
     
     const niReduction = result.originalNI > 0 
       ? ((result.originalNI - result.reducedNI) / result.originalNI) * 100 
@@ -149,7 +187,6 @@ const EmployerNICalculator: React.FC<EmployerNICalculatorProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-2 py-8">
-      <h1 className="text-2xl font-bold mb-6">Employer NI Savings Calculator</h1>
       
       <TabNavigation
         tabs={result ? [...TAB_LABELS, 'Results'] : TAB_LABELS}
@@ -158,7 +195,7 @@ const EmployerNICalculator: React.FC<EmployerNICalculatorProps> = ({
         className="mb-6"
       />
       
-      <div className="bg-white rounded-xl shadow p-6">
+      <div>
         {activeTab === 0 && (
           <MultiBenefitTab
             taxYear={taxYear}
@@ -172,32 +209,7 @@ const EmployerNICalculator: React.FC<EmployerNICalculatorProps> = ({
             onCalculate={handleSubmit}
             onReset={handleReset}
           />
-        )}
-        {activeTab === 1 && (
-          <MultiYearProjectionTab
-            taxYear={taxYear}
-            employeeCount={employeeCount}
-            averageSalary={averageSalary}
-            onTaxYearChange={handleTaxYearChange}
-            onEmployeeCountChange={handleEmployeeCountChange}
-            onAverageSalaryChange={handleAverageSalaryChange}
-            onCalculate={handleSubmit}
-            onReset={handleReset}
-          />
-        )}
-        {activeTab === 2 && (
-          <SalaryBandsTab
-            taxYear={taxYear}
-            employeeCount={employeeCount}
-            averageSalary={averageSalary}
-            onTaxYearChange={handleTaxYearChange}
-            onEmployeeCountChange={handleEmployeeCountChange}
-            onAverageSalaryChange={handleAverageSalaryChange}
-            onCalculate={handleSubmit}
-            onReset={handleReset}
-          />
-        )}
-        {activeTab === 3 && (
+        )}        {activeTab === 1 && (
           <WhatIfScenarioTab
             taxYear={taxYear}
             employeeCount={employeeCount}
@@ -209,11 +221,10 @@ const EmployerNICalculator: React.FC<EmployerNICalculatorProps> = ({
             onAverageSalaryChange={handleAverageSalaryChange}
             onOriginalConfigChange={handleBenefitConfigChange}
             onScenarioConfigChange={handleScenarioBenefitConfigChange}
-            onCalculateScenario={handleSubmit}
+            onCalculateScenario={() => handleSubmit({} as React.FormEvent)}
             onResetScenario={handleReset}
           />
-        )}
-        {activeTab === 4 && result && (
+        )}        {activeTab === 2 && result && (
           <EmployerNIResults
             result={result}
             formValues={{
@@ -222,6 +233,7 @@ const EmployerNICalculator: React.FC<EmployerNICalculatorProps> = ({
               averageSalary,
               includeMultiBenefits: Object.values(benefitConfig).some(benefit => benefit.enabled)
             }}
+            benefitConfig={benefitConfig}
             formattedResults={formatResults(result)}
             onReset={handleReset}
             onSaveScenario={onSaveScenario ? handleSaveScenario : undefined}

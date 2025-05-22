@@ -294,7 +294,6 @@ const EmployeeSavingsCalculator: React.FC<EmployeeSavingsCalculatorProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-2 py-8">
-      <h1 className="text-2xl font-bold mb-6">Employee Tax & NI Savings Calculator</h1>
       
       {/* Tab Navigation with standardized component */}
       <TabNavigation
@@ -305,7 +304,7 @@ const EmployeeSavingsCalculator: React.FC<EmployeeSavingsCalculatorProps> = ({
       />
       
       {/* Tab Content */}
-      <Card className="p-6">
+      <div>
         {activeTab === 0 && (
           <PersonalDetailsTab
             taxYear={taxYear}
@@ -345,7 +344,7 @@ const EmployeeSavingsCalculator: React.FC<EmployeeSavingsCalculatorProps> = ({
             showMethodologyLink={showMethodologyLink}
           />
         )}
-      </Card>
+      </div>
       
       {/* Information about calculator */}
       <InfoBox title="About this calculator" variant="info" className="mt-6">

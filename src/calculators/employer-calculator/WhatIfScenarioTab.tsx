@@ -73,16 +73,18 @@ const WhatIfScenarioTab: React.FC<WhatIfScenarioTabProps> = ({
   };
 
   return (
-    <>
-      <CalculatorForm
-        taxYear={taxYear}
-        employeeCount={employeeCount}
-        averageSalary={averageSalary}
-        onTaxYearChange={onTaxYearChange}
-        onEmployeeCountChange={onEmployeeCountChange}
-        onAverageSalaryChange={onAverageSalaryChange}
-      />
-      <div className="my-6">
+    <form>
+      <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6">
+        <CalculatorForm
+          taxYear={taxYear}
+          employeeCount={employeeCount}
+          averageSalary={averageSalary}
+          onTaxYearChange={onTaxYearChange}
+          onEmployeeCountChange={onEmployeeCountChange}
+          onAverageSalaryChange={onAverageSalaryChange}
+        />
+      </div>
+      <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6">
         <WhatIfScenario
           originalConfig={originalConfig}
           scenarioConfig={scenarioConfig}
@@ -90,7 +92,8 @@ const WhatIfScenarioTab: React.FC<WhatIfScenarioTabProps> = ({
           onScenarioChange={handleScenarioChange}
         />
       </div>
-      <div className="flex flex-col md:flex-row gap-4 mt-4 justify-between">
+      
+      <div className="flex flex-col md:flex-row gap-4 mt-8 justify-between">
         <button
           type="button"
           className="px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition"
@@ -106,7 +109,7 @@ const WhatIfScenarioTab: React.FC<WhatIfScenarioTabProps> = ({
           Calculate Scenario
         </button>
       </div>
-    </>
+    </form>
   );
 };
 

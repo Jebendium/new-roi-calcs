@@ -4,6 +4,9 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Employee Benefits ROI Calculator Suite',
   description: 'Comprehensive tools to calculate the real value and return on investment for UK employee benefits and HR systems',
+  icons: {
+    icon: '/images/Favicon-32x32.svg',
+  },
 };
 
 export default function RootLayout({

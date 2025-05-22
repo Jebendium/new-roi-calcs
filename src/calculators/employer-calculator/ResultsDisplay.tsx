@@ -1,15 +1,31 @@
 import React from 'react';
-import EmployerNIResults from './EmployerNIResults';
-import { CalculationResult } from '../../lib/calculationFunctions';
+import EmployerNIResults from './components/EmployerNIResults';
+import { MultiBenefitConfig } from '../../calculation-engine/types';
+import { formatCurrency, formatPercentage } from '../../utils/formatting';
+
+interface EmployerNIResultType {
+  annualSavings: number;
+  savingsPerEmployee: number;
+  originalNI: number;
+  reducedNI: number;
+  benefitBreakdown?: Record<string, {
+    niSavings: number;
+    additionalSavings: number;
+    totalSavings: number;
+    participationRate?: number;
+    contributionValue?: number;
+  }>;
+  benefitConfig?: MultiBenefitConfig;
+}
 
 interface ResultsDisplayProps {
   showResults: boolean;
-  calculationResult: CalculationResult | null;
+  calculationResult: EmployerNIResultType | null;
   employeeCount: string;
   averageSalary: string;
   taxYear: string;
   showScenarioResults: boolean;
-  scenarioResult: CalculationResult | null;
+  scenarioResult: EmployerNIResultType | null;
   onGenerateReport: () => void;
   resultsRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -34,14 +50,28 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
 
   return (
     <div id="results-container" ref={resultsRef}>
-      {/* Main Results */}
-      {showResults && calculationResult && !showScenarioResults && (
-        <div className="mb-0">
+      {/* Main Results */}      {showResults && calculationResult && !showScenarioResults && (        <div className="mb-0">
           <EmployerNIResults
             result={calculationResult}
-            employeeCount={Number(employeeCount)}
-            averageSalary={Number(averageSalary)}
-            taxYear={taxYear}
+            formValues={{
+              employeeCount: Number(employeeCount),
+              averageSalary: Number(averageSalary),
+              taxYear: taxYear,
+              includeMultiBenefits: true
+            }}
+            formattedResults={{
+              annualSavings: formatCurrency(calculationResult.annualSavings),
+              savingsPerEmployee: formatCurrency(calculationResult.savingsPerEmployee),
+              originalNI: formatCurrency(calculationResult.originalNI),
+              reducedNI: formatCurrency(calculationResult.reducedNI),
+              niReduction: formatPercentage(
+                calculationResult.originalNI > 0 
+                  ? ((calculationResult.originalNI - calculationResult.reducedNI) / calculationResult.originalNI) * 100 
+                  : 0
+              )
+            }}
+            benefitConfig={calculationResult?.benefitConfig as MultiBenefitConfig || {} as MultiBenefitConfig}
+            onReset={() => {}}
           />
           <div className="flex justify-end mt-4">
             <button
@@ -56,25 +86,55 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({
           </div>
         </div>
       )}
-      {/* What-If Scenario Results */}
-      {showScenarioResults && scenarioResult && calculationResult && (
+      {/* What-If Scenario Results */}      {showScenarioResults && scenarioResult && calculationResult && (
         <div>
           <h2 className="text-lg font-semibold mb-2">Original Configuration Results</h2>
           <div className="mb-6">
             <EmployerNIResults
               result={calculationResult}
-              employeeCount={Number(employeeCount)}
-              averageSalary={Number(averageSalary)}
-              taxYear={taxYear}
+              formValues={{
+                employeeCount: Number(employeeCount),
+                averageSalary: Number(averageSalary),
+                taxYear,
+                includeMultiBenefits: true
+              }}
+              formattedResults={{
+                annualSavings: formatCurrency(calculationResult.annualSavings),
+                savingsPerEmployee: formatCurrency(calculationResult.savingsPerEmployee),
+                originalNI: formatCurrency(calculationResult.originalNI),
+                reducedNI: formatCurrency(calculationResult.reducedNI),
+                niReduction: formatPercentage(
+                  calculationResult.originalNI > 0 
+                    ? ((calculationResult.originalNI - calculationResult.reducedNI) / calculationResult.originalNI) * 100 
+                    : 0
+                )
+              }}
+              benefitConfig={calculationResult?.benefitConfig as MultiBenefitConfig || {} as MultiBenefitConfig}
+              onReset={() => {}}
             />
           </div>
           <h2 className="text-lg font-semibold mb-2">What-If Scenario Results</h2>
           <div className="mb-4">
             <EmployerNIResults
               result={scenarioResult}
-              employeeCount={Number(employeeCount)}
-              averageSalary={Number(averageSalary)}
-              taxYear={taxYear}
+              formValues={{
+                employeeCount: Number(employeeCount),
+                averageSalary: Number(averageSalary),
+                taxYear: taxYear,
+                includeMultiBenefits: true
+              }}
+              formattedResults={{
+                annualSavings: formatCurrency(scenarioResult.annualSavings),
+                savingsPerEmployee: formatCurrency(scenarioResult.savingsPerEmployee),
+                originalNI: formatCurrency(scenarioResult.originalNI),
+                reducedNI: formatCurrency(scenarioResult.reducedNI),
+                niReduction: formatPercentage(
+                  scenarioResult.originalNI > 0 
+                    ? ((scenarioResult.originalNI - scenarioResult.reducedNI) / scenarioResult.originalNI) * 100 
+                    : 0
+                )
+              }}              benefitConfig={scenarioResult?.benefitConfig as MultiBenefitConfig || {} as MultiBenefitConfig}
+              onReset={() => {}}
             />
           </div>
           <div className="flex justify-end mt-4">

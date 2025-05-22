@@ -1,0 +1,65 @@
+// Improved topic clustering - extract key topics from articles (local implementation)
+async function extractTopics(articles: any[]) {
+  try {
+    console.log("Using local topic extraction for articles");
+    
+    // Extract all text from articles
+    const combinedContent = articles.map(article => 
+      `${article.title}. ${article.summary || ''}`
+    ).join(' ');
+    
+    // Tokenize the text into words
+    const words = combinedContent.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')  // Replace punctuation with spaces
+      .split(/\s+/)              // Split by whitespace
+      .filter(word => word.length > 3);  // Filter out short words
+    
+    // Count word frequencies
+    const wordFrequencies: Record<string, number> = {};
+    words.forEach(word => {
+      // Skip common words that aren't topical
+      if (!['news', 'article', 'today', 'company', 'report', 'according', 'people', 'employees',
+            'said', 'year', 'month', 'week', 'time', 'this', 'that', 'with', 'from', 'have', 'will'].includes(word)) {
+        wordFrequencies[word] = (wordFrequencies[word] || 0) + 1;
+      }
+    });
+    
+    // Extract bigrams (two-word phrases)
+    const bigrams: Record<string, number> = {};
+    for (let i = 0; i < words.length - 1; i++) {
+      const bigram = `${words[i]} ${words[i + 1]}`;
+      if (bigram.length > 7) {
+        bigrams[bigram] = (bigrams[bigram] || 0) + 1;
+      }
+    }
+    
+    // Combine words and bigrams, giving priority to bigrams
+    const topics: Record<string, number> = { ...wordFrequencies };
+    Object.entries(bigrams).forEach(([bigram, count]) => {
+      if (count > 1) {  // Only include bigrams that appear more than once
+        topics[bigram] = count * 1.5;  // Give bigrams more weight
+      }
+    });
+    
+    // Filter out unwanted phrases
+    const filteredTopics: Record<string, number> = {};
+    Object.entries(topics).forEach(([topic, count]) => {
+      // Skip generic topics or those with common verbs/prepositions
+      if (!topic.match(/\b(from|have|will|more|than|with|this|that|just|been|some|when|only)\b/i)) {
+        filteredTopics[topic] = count;
+      }
+    });
+    
+    // Convert to array and sort by frequency
+    const sortedTopics = Object.entries(filteredTopics)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10) // Top 10 topics
+      .map(([topic, count]) => ({ topic, count }));
+    
+    console.log("Local topic extraction results:", sortedTopics);
+    return sortedTopics;
+  } catch (error) {
+    console.error('Error extracting topics:', error);
+    return [];
+  }
+}

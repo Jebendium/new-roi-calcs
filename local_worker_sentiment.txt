@@ -1,0 +1,66 @@
+// Local sentiment analysis function for worker thread
+async function analyzeSentiment(text, huggingFaceToken) {
+  // Local keyword-based sentiment analysis
+  const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'best', 'positive', 'success', 'benefit', 'improve', 'advantage', 'happy', 'love', 'perfect', 'top', 'innovative', 'efficient', 'helpful', 'useful', 'valuable', 'impressive', 'outstanding', 'exceptional', 'favorable', 'encouraging', 'growth', 'progress', 'achievement', 'solution'];
+  
+  const negativeWords = ['bad', 'poor', 'terrible', 'awful', 'worst', 'negative', 'fail', 'problem', 'issue', 'concern', 'risk', 'difficult', 'trouble', 'wrong', 'sad', 'disappointing', 'insufficient', 'challenging', 'ineffective', 'inadequate', 'problematic', 'unfavorable', 'harmful', 'concerning', 'worrying', 'decline', 'decrease', 'loss', 'struggle', 'crisis'];
+  
+  try {
+    console.log("Worker: Using local sentiment analysis for text:", text.substring(0, 50) + "...");
+    
+    const lowerText = text.toLowerCase();
+    let positiveCount = 0;
+    let negativeCount = 0;
+    
+    // Count occurrences of positive and negative words
+    positiveWords.forEach(word => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      const matches = lowerText.match(regex);
+      if (matches) positiveCount += matches.length;
+    });
+    
+    negativeWords.forEach(word => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      const matches = lowerText.match(regex);
+      if (matches) negativeCount += matches.length;
+    });
+    
+    // Add weight for phrases like "very good" or "extremely bad"
+    const intensifiers = ['very', 'extremely', 'incredibly', 'highly', 'especially'];
+    intensifiers.forEach(intensifier => {
+      positiveWords.forEach(word => {
+        const phrase = `${intensifier} ${word}`;
+        if (lowerText.includes(phrase)) positiveCount += 1;
+      });
+      
+      negativeWords.forEach(word => {
+        const phrase = `${intensifier} ${word}`;
+        if (lowerText.includes(phrase)) negativeCount += 1;
+      });
+    });
+    
+    // Calculate sentiment score (0-1 range)
+    const total = positiveCount + negativeCount;
+    let score = 0.5; // Neutral default
+    
+    if (total > 0) {
+      score = positiveCount / total;
+    }
+    
+    // Determine sentiment category
+    let sentiment;
+    if (score > 0.67) {
+      sentiment = 'positive';
+    } else if (score < 0.33) {
+      sentiment = 'negative';
+    } else {
+      sentiment = 'neutral';
+    }
+    
+    console.log("Worker: Local sentiment analysis result:", { sentiment, score, positiveCount, negativeCount });
+    return { sentiment, score };
+  } catch (error) {
+    console.error('Error in local sentiment analysis:', error);
+    return { sentiment: 'neutral', score: 0.5 };
+  }
+}

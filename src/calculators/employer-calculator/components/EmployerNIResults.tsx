@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { FormValues, EmployerNIResult } from '../../shared/types';
-import { ResultCard, ExportButton } from '../../shared/components';
+import { FormValues } from '../../core/types';
+import { MultiBenefitConfig } from '../../../calculation-engine/types';
+import { ExportButton } from '../../shared/components';
 import {
   InfoBox,
   ResultHighlight,
@@ -11,15 +12,35 @@ import {
 import { 
   NISavingsComparisonChart, 
   BenefitBreakdownChart, 
-  NISavingsDistributionChart,
-  MultiYearProjectionChart
+  NISavingsDistributionChart
 } from '../../../components/charts/EmployerNICharts';
-import { formatCurrency, formatPercentage } from '../../../utils/formatting';
+import { formatCurrency } from '../../../utils/formatting';
+
+interface BenefitBreakdownItem {
+  niSavings: number;
+  additionalSavings: number;
+  totalSavings: number;
+  participationRate?: number;
+  contributionValue?: number;
+}
 
 interface EmployerNIResultsProps {
-  result: EmployerNIResult;
+  result: {
+    annualSavings: number;
+    savingsPerEmployee: number;
+    originalNI: number;
+    reducedNI: number;
+    benefitBreakdown?: Record<string, BenefitBreakdownItem>;
+  };
   formValues: FormValues;
-  formattedResults: any;
+  formattedResults: {
+    annualSavings: string;
+    savingsPerEmployee: string;
+    originalNI: string;
+    reducedNI: string;
+    niReduction: string;
+  };
+  benefitConfig: MultiBenefitConfig;
   onReset: () => void;
   onSaveScenario?: (name: string) => void;
   showMethodologyLink?: boolean;
@@ -35,6 +56,7 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
   result,
   formValues,
   formattedResults,
+  benefitConfig,
   onReset,
   onSaveScenario,
   showMethodologyLink = true
@@ -50,43 +72,33 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
       setShowSaveModal(false);
       setScenarioName('');
     }
-  };
-
-  // Fix for undefined% error - safely get pension contribution rate
+  };  // Get pension contribution rate safely from either benefitConfig or result
   const getPensionContributionRate = () => {
+    // First try to get from benefitConfig prop if available
+    if (benefitConfig?.pension?.contributionValue !== undefined) {
+      return `${benefitConfig.pension.contributionValue}%`;
+    }
+    
+    // Fallback to result.benefitBreakdown if benefitConfig is not available
     if (!result.benefitBreakdown?.pension) return '0%';
     
     const pensionConfig = result.benefitBreakdown.pension;
-    if (!pensionConfig.enabled || typeof pensionConfig.contributionValue !== 'number') {
+    if (typeof pensionConfig.contributionValue !== 'number') {
       return '0%';
     }
     
     return `${pensionConfig.contributionValue}%`;
   };
 
-  // Create sample projection data for demo (replace this with actual data in production)
-  const sampleProjectionData = [
-    { year: 'Year 1', employees: 100, averageSalary: 30000, annualSavings: result.annualSavings, cumulativeSavings: result.annualSavings },
-    { year: 'Year 2', employees: 105, averageSalary: 30900, annualSavings: result.annualSavings * 1.07, cumulativeSavings: result.annualSavings * 2.07 },
-    { year: 'Year 3', employees: 110, averageSalary: 31827, annualSavings: result.annualSavings * 1.15, cumulativeSavings: result.annualSavings * 3.22 },
-    { year: 'Year 4', employees: 116, averageSalary: 32782, annualSavings: result.annualSavings * 1.23, cumulativeSavings: result.annualSavings * 4.45 },
-    { year: 'Year 5', employees: 122, averageSalary: 33765, annualSavings: result.annualSavings * 1.32, cumulativeSavings: result.annualSavings * 5.77 },
-  ];
-
   // Define result tabs
   const resultTabs = [
     'Overview',
-    ...(result.benefitBreakdown && Object.keys(result.benefitBreakdown).length > 0 ? ['Multi-Benefit Analysis'] : []),
-    'Multi-Year Projection'
+    ...(result.benefitBreakdown && Object.keys(result.benefitBreakdown).length > 0 ? ['Multi-Benefit Analysis'] : [])
   ];
   
   return (
     <div className="bg-white rounded-xl shadow-md p-6 mt-8">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">
-          Employer NI Savings Results
-        </h2>
-        
         <InfoBox title="Calculation Summary" className="mb-4">
           Based on {formValues.employeeCount} employees with an average salary of £{Number(formValues.averageSalary).toLocaleString()} 
           and a pension contribution of {getPensionContributionRate()} for the {formValues.taxYear} tax year.
@@ -108,22 +120,20 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
 
       {/* Main Charts - always visible */}
       <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <h3 className="text-base font-medium mb-3">NI Savings Comparison</h3>
+        <div className="bg-white rounded-lg shadow-sm p-4">
           <NISavingsComparisonChart 
             originalNI={result.originalNI}
             reducedNI={result.reducedNI}
             niSavings={result.annualSavings}
           />
-        </Card>
+        </div>
         
         {result.benefitBreakdown && Object.keys(result.benefitBreakdown).length > 0 && (
-          <Card>
-            <h3 className="text-base font-medium mb-3">Savings Distribution</h3>
+          <div className="bg-white rounded-lg shadow-sm p-4">
             <NISavingsDistributionChart 
               benefitBreakdown={result.benefitBreakdown}
             />
-          </Card>
+          </div>
         )}
       </div>
       
@@ -222,7 +232,7 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-200">
                     {Object.entries(result.benefitBreakdown).map(([key, value]) => {
-                      const benefitLabels = {
+                      const benefitLabels: Record<string, string> = {
                         'pension': 'Pension',
                         'cycle': 'Cycle to Work',
                         'car': 'EV Car Scheme',
@@ -232,7 +242,7 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
                       
                       return (
                         <tr key={key}>
-                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">{benefitLabels[key] || key}</td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">{benefitLabels[key as keyof typeof benefitLabels] || key}</td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">{value.participationRate || 0}%</td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
                             {formatCurrency(value.niSavings || 0)}
@@ -246,60 +256,6 @@ const EmployerNIResults: React.FC<EmployerNIResultsProps> = ({
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </div>
-        )}
-        
-        {/* Multi-Year Projection Tab */}
-        {activeResultTab === (result.benefitBreakdown ? 2 : 1) && (
-          <div>
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">5-Year Savings Projection</h3>
-              <Card>
-                <MultiYearProjectionChart projectionData={sampleProjectionData} />
-              </Card>
-            </div>
-            
-            <InfoBox title="Projection Assumptions" className="mb-6">
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Annual employee headcount growth: 5%</li>
-                <li>Annual salary increase: 3%</li>
-                <li>Benefits participation rate: Constant</li>
-                <li>Tax rates based on current legislation</li>
-              </ul>
-            </InfoBox>
-            
-            <Card>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200">
-                  <thead>
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Year</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Employees</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Avg. Salary</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Annual Savings</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Cumulative Savings</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-slate-200">
-                    {sampleProjectionData.map((year, index) => (
-                      <tr key={index}>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900">{year.year}</td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">{year.employees}</td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
-                          {formatCurrency(year.averageSalary, 0, 0)}
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
-                          {formatCurrency(year.annualSavings, 0, 0)}
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-green-600 text-right">
-                          {formatCurrency(year.cumulativeSavings, 0, 0)}
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>

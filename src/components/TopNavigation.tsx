@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { CalculatorType } from '../types/calculator';
 import { calculatorData } from '../data/calculatorData';
+import { resourcesData } from '../data/resourcesData';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -17,7 +18,8 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   onSelectCalculator,
   onGoHome,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [calculatorsDropdownOpen, setCalculatorsDropdownOpen] = useState(false);
+  const [resourcesDropdownOpen, setResourcesDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -27,8 +29,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     (pathname?.includes('/calculator/employee-savings') ? 'employee-savings' : 
      pathname?.includes('/calculator/employer-ni') ? 'employer-ni' : null) as CalculatorType | null;
 
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
+  const toggleCalculatorsDropdown = () => {
+    setCalculatorsDropdownOpen(!calculatorsDropdownOpen);
+    if (resourcesDropdownOpen) setResourcesDropdownOpen(false);
+  };
+
+  const toggleResourcesDropdown = () => {
+    setResourcesDropdownOpen(!resourcesDropdownOpen);
+    if (calculatorsDropdownOpen) setCalculatorsDropdownOpen(false);
   };
 
   const toggleMobileMenu = () => {
@@ -38,15 +46,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 flex items-center justify-center text-white mr-3">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 6V18M6 12H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <h1 className="text-xl font-bold text-slate-800">ROI Calculator</h1>
+            <img 
+              src="/images/main-logo-transparent.svg" 
+              alt="Company Logo" 
+              className="h-[235px] w-auto" 
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -61,12 +68,12 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             {/* Calculators Dropdown */}
             <div className="relative ml-4">
               <button
-                onClick={toggleDropdown}
+                onClick={toggleCalculatorsDropdown}
                 className="px-4 py-2 text-slate-600 hover:text-blue-600 font-medium flex items-center"
               >
                 Calculators
                 <svg
-                  className={`w-4 h-4 ml-1 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                  className={`w-4 h-4 ml-1 transition-transform ${calculatorsDropdownOpen ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -76,14 +83,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                 </svg>
               </button>
               
-              {/* Dropdown Menu */}
-              {dropdownOpen && (
+              {/* Calculators Dropdown Menu */}
+              {calculatorsDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-100 py-2 z-50">
                   {calculatorData.map((calc) => (
                     <Link
                       key={calc.type}
                       href={`/calculator/${calc.type}`}
-                      onClick={() => setDropdownOpen(false)}
+                      onClick={() => setCalculatorsDropdownOpen(false)}
                       className={`w-full flex items-center px-4 py-3 text-left hover:bg-slate-50 ${
                         derivedActiveCalculator === calc.type ? 'bg-blue-50 text-blue-600' : 'text-slate-600'
                       }`}
@@ -98,12 +105,45 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               )}
             </div>
             
-            <Link
-              href="/resources"
-              className="ml-4 px-4 py-2 text-slate-600 hover:text-blue-600 font-medium"
-            >
-              Resources
-            </Link>
+            {/* Resources Dropdown */}
+            <div className="relative ml-4">
+              <button
+                onClick={toggleResourcesDropdown}
+                className="px-4 py-2 text-slate-600 hover:text-blue-600 font-medium flex items-center"
+              >
+                Resources
+                <svg
+                  className={`w-4 h-4 ml-1 transition-transform ${resourcesDropdownOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </button>
+              
+              {/* Resources Dropdown Menu */}
+              {resourcesDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-slate-100 py-2 z-50">
+                  {resourcesData.map((resource) => (
+                    <Link
+                      key={resource.type}
+                      href={`/resources/${resource.type}`}
+                      onClick={() => setResourcesDropdownOpen(false)}
+                      className={`w-full flex items-center px-4 py-3 text-left hover:bg-slate-50 ${
+                        pathname?.includes(`/resources/${resource.type}`) ? 'bg-blue-50 text-blue-600' : 'text-slate-600'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${resource.gradient} flex items-center justify-center text-white mr-3`}>
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" dangerouslySetInnerHTML={{ __html: resource.iconSvg }} />
+                      </div>
+                      <span className="text-sm font-medium">{resource.title}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
             
             <button className="ml-4 px-4 py-2 text-slate-600 hover:text-blue-600 font-medium">
               About
@@ -164,13 +204,25 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
               </Link>
             ))}
             
-            <Link
-              href="/resources"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-left block px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-md"
-            >
-              Resources
-            </Link>
+            <div className="px-4 py-2 text-sm font-medium text-slate-500">Resources</div>
+            
+            {resourcesData.map((resource) => (
+              <Link
+                key={resource.type}
+                href={`/resources/${resource.type}`}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`w-full flex items-center px-4 py-3 text-left rounded-md ${
+                  pathname?.includes(`/resources/${resource.type}`)
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${resource.gradient} flex items-center justify-center text-white mr-3`}>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" dangerouslySetInnerHTML={{ __html: resource.iconSvg }} />
+                </div>
+                <span className="text-sm font-medium">{resource.title}</span>
+              </Link>
+            ))}
             
             <button className="w-full text-left px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-md">
               About

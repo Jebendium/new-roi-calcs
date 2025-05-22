@@ -41,7 +41,7 @@ const MultiBenefitTab: React.FC<MultiBenefitTabProps> = ({
 
   return (
     <form onSubmit={handleCalculate}>
-      <Card className="mb-6">
+      <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6">
         <CalculatorForm
           taxYear={taxYear}
           employeeCount={employeeCount}
@@ -50,14 +50,14 @@ const MultiBenefitTab: React.FC<MultiBenefitTabProps> = ({
           onEmployeeCountChange={onEmployeeCountChange}
           onAverageSalaryChange={onAverageSalaryChange}
         />
-      </Card>
+      </div>
       
-      <Card>
+      <div className="bg-white rounded-lg border border-slate-200 p-4">
         <MultiBenefitConfig 
           benefitConfig={benefitConfig} 
           onChange={onBenefitConfigChange} 
         />
-      </Card>
+      </div>
       
       <div className="flex flex-col md:flex-row gap-4 mt-8 justify-between">
         <button

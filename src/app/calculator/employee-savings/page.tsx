@@ -38,14 +38,12 @@ export default function EmployeeSavingsPage() {
         {calculator.title}
       </h1>
       
-      <Card 
-        title="Enter Details" 
-        animateIn={true}
-        icon={calculator.icon}
-        className="animate-slide-up"
-      >
+      <div className="bg-white rounded-lg border border-slate-200 animate-slide-up">
+        <div className="p-4 border-b border-slate-200 flex items-center">
+          <h2 className="text-xl font-semibold text-slate-800">Enter Details</h2>
+        </div>
         <EmployeeSavingsCalculator />
-      </Card>
+      </div>
       
       <div className="mt-6">
         <Link 

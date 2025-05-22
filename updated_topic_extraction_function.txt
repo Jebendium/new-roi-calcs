@@ -1,0 +1,48 @@
+// Improved topic clustering - extract key topics from articles (updated API format)
+async function extractTopics(articles: any[]) {
+  try {
+    // Combine article titles and summaries for topic extraction
+    const combinedContent = articles.map(article => 
+      `${article.title}. ${article.summary || ''}`
+    ).join(' ');
+    
+    // Updated URL format for Hugging Face Inference API
+    const response = await fetch('https://router.huggingface.co/ml6team/keyphrase-extraction-kbir-inspec', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.HUGGING_FACE_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inputs: combinedContent.substring(0, 2000), // Take first 2000 chars
+      }),
+    });
+    
+    if (!response.ok) {
+      console.error('Topic extraction error:', response.statusText);
+      return [];
+    }
+    
+    const result = await response.json();
+    
+    // Process and count the keyphrases
+    const topics: Record<string, number> = {};
+    result.forEach((item: any) => {
+      const phrase = item.word.toLowerCase();
+      // Skip very short phrases and common words
+      if (phrase.length < 4 || ['news', 'article', 'today'].includes(phrase)) return;
+      
+      topics[phrase] = (topics[phrase] || 0) + 1;
+    });
+    
+    // Convert to array and sort by frequency
+    return Object.entries(topics)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10) // Top 10 topics
+      .map(([topic, count]) => ({ topic, count }));
+    
+  } catch (error) {
+    console.error('Error extracting topics:', error);
+    return [];
+  }
+}

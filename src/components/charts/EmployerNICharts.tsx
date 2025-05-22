@@ -172,10 +172,10 @@ export const NISavingsDistributionChart: React.FC<BenefitBreakdownChartProps> = 
         <PieChart>
           <Pie
             data={data}
-            cx="50%"
+            cx="60%"
             cy="50%"
             labelLine={true}
-            outerRadius={100}
+            outerRadius={90}
             fill="#8884d8"
             dataKey="value"
             label={({ name, value }) => `${name}: ${formatPercentage(value, totalSavings)}`}
