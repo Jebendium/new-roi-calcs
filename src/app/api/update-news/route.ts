@@ -105,28 +105,28 @@ const categoryQueries: Record<string, {
   'UK HR News': { 
     keywords: 'human resources,HR,employment law,personnel,CIPD,workplace,staff,recruitment,hiring,employees,employment,tribunal,discrimination,harassment,policies,procedures', 
     countries: 'gb', 
-    limit: 25, 
+    limit: 15, 
     languages: 'en',
     categories: 'business'
   },
   'Payroll News': { 
     keywords: 'payroll,HMRC,CIPP,PAYE,wages,salary,tax,national insurance,pension,auto-enrolment,RTI,P45,P60,IR35,payslip,payroll software', 
     countries: 'gb', 
-    limit: 25, 
+    limit: 15, 
     languages: 'en',
     categories: 'business'
   },
   'Employee Benefits News': { 
     keywords: 'employee benefits,staff rewards,workplace perks,REBA,pension schemes,health insurance,life insurance,flexible benefits,wellness,wellbeing,mental health,gym membership,cycle to work', 
     countries: 'gb', 
-    limit: 25, 
+    limit: 15, 
     languages: 'en',
     categories: 'business'
   },
   'HR Legal News': { 
     keywords: 'employment tribunal,HR legislation,workplace disputes,discrimination law,ACAS,unfair dismissal,redundancy,maternity leave,paternity leave,sick pay,minimum wage,working time regulations', 
     countries: 'gb', 
-    limit: 25, 
+    limit: 15, 
     languages: 'en',
     categories: 'business'
   }
@@ -167,6 +167,29 @@ async function fetchMediaStackArticles(query: typeof categoryQueries[string]): P
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        console.warn('MediaStack rate limit hit, waiting 60 seconds before retry...');
+        await new Promise(resolve => setTimeout(resolve, 60000));
+        
+        // Retry once after rate limit delay
+        const retryResponse = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'ROI-Calculator-News-Aggregator/1.0'
+          }
+        });
+        
+        if (!retryResponse.ok) {
+          throw new Error(`MediaStack API error after retry: ${retryResponse.status} ${retryResponse.statusText}`);
+        }
+        
+        const retryData: MediaStackResponse = await retryResponse.json();
+        if (!retryData || !Array.isArray(retryData.data)) {
+          throw new Error('Invalid response format from MediaStack API after retry');
+        }
+        return retryData.data || [];
+      }
+      
       throw new Error(`MediaStack API error: ${response.status} ${response.statusText}`);
     }
 
@@ -332,8 +355,9 @@ export async function GET(request: Request) {
         // Add to all articles
         allArticles.push(...processedArticles);
 
-        // Add delay between categories to respect API rate limits
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Add delay between categories to respect API rate limits (increased to 10 seconds)
+        console.log('Waiting 10 seconds before next category to respect rate limits...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
 
       } catch (categoryError) {
         console.error(`Error processing category ${categoryName}:`, categoryError);
