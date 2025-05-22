@@ -93,46 +93,31 @@ interface MediaStackResponse {
   data: MediaStackArticle[];
 }
 
-// Category queries mapping to UK HR/Benefits content
-const categoryQueries: Record<string, { 
+// Simplified MediaStack queries using proper categories
+const mediaStackQueries: Record<string, { 
   keywords: string; 
   countries: string; 
   limit: number; 
-  categories?: string; 
-  languages?: string;
-  sources?: string;
+  categories: string; 
+  languages: string;
 }> = {
-  'UK HR News': { 
-    keywords: 'human resources,HR,employment law,personnel,CIPD,workplace,staff,recruitment,hiring,employees,employment,tribunal,discrimination,harassment,policies,procedures', 
+  'Business News (HR/Payroll/Benefits)': { 
+    keywords: 'HR,human resources,payroll,employee benefits,employment,workplace,staff,recruitment,pension,salary,wages', 
     countries: 'gb', 
-    limit: 15, 
+    limit: 40, 
     languages: 'en',
     categories: 'business'
   },
-  'Payroll News': { 
-    keywords: 'payroll,HMRC,CIPP,PAYE,wages,salary,tax,national insurance,pension,auto-enrolment,RTI,P45,P60,IR35,payslip,payroll software', 
+  'Technology News (HR Tech)': { 
+    keywords: 'HR technology,payroll software,workforce management,employee management,HRIS,HR systems,digital workplace', 
     countries: 'gb', 
-    limit: 15, 
+    limit: 20, 
     languages: 'en',
-    categories: 'business'
-  },
-  'Employee Benefits News': { 
-    keywords: 'employee benefits,staff rewards,workplace perks,REBA,pension schemes,health insurance,life insurance,flexible benefits,wellness,wellbeing,mental health,gym membership,cycle to work', 
-    countries: 'gb', 
-    limit: 15, 
-    languages: 'en',
-    categories: 'business'
-  },
-  'HR Legal News': { 
-    keywords: 'employment tribunal,HR legislation,workplace disputes,discrimination law,ACAS,unfair dismissal,redundancy,maternity leave,paternity leave,sick pay,minimum wage,working time regulations', 
-    countries: 'gb', 
-    limit: 15, 
-    languages: 'en',
-    categories: 'business'
+    categories: 'technology'
   }
 };
 // Function to fetch articles from MediaStack for a specific query
-async function fetchMediaStackArticles(query: typeof categoryQueries[string]): Promise<MediaStackArticle[]> {
+async function fetchMediaStackArticles(query: typeof mediaStackQueries[string]): Promise<MediaStackArticle[]> {
   const apiKey = process.env.MEDIASTACK_API_KEY;
   if (!apiKey) {
     throw new Error('MediaStack API key not configured');
@@ -207,8 +192,45 @@ async function fetchMediaStackArticles(query: typeof categoryQueries[string]): P
   }
 }
 
+// Function to intelligently categorize articles based on content
+function categorizeArticle(article: MediaStackArticle): string {
+  const title = article.title.toLowerCase();
+  const description = (article.description || '').toLowerCase();
+  const content = `${title} ${description}`;
+
+  // Define keyword patterns for each category
+  const categoryPatterns = {
+    'Payroll News': ['payroll', 'paye', 'wages', 'salary', 'tax', 'national insurance', 'pension', 'hmrc', 'rtl', 'p45', 'p60', 'ir35'],
+    'Employee Benefits News': ['benefits', 'wellbeing', 'wellness', 'health insurance', 'life insurance', 'mental health', 'flexible benefits', 'perks', 'rewards', 'cycle to work', 'gym'],
+    'HR Legal News': ['tribunal', 'employment law', 'discrimination', 'unfair dismissal', 'redundancy', 'maternity', 'paternity', 'acas', 'legal', 'dispute', 'legislation'],
+    'UK HR News': ['hr', 'human resources', 'recruitment', 'hiring', 'employee', 'staff', 'workplace', 'personnel', 'cipd', 'workforce']
+  };
+
+  // Score each category based on keyword matches
+  let bestCategory = 'UK HR News'; // default
+  let bestScore = 0;
+
+  for (const [category, keywords] of Object.entries(categoryPatterns)) {
+    let score = 0;
+    for (const keyword of keywords) {
+      if (content.includes(keyword)) {
+        score += 1;
+      }
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestCategory = category;
+    }
+  }
+
+  return bestCategory;
+}
+
 // Function to transform MediaStack article to ProcessedArticle format
-function transformMediaStackArticle(article: MediaStackArticle, category: string): Partial<ProcessedArticle> {
+function transformMediaStackArticle(article: MediaStackArticle, originalQuery: string): Partial<ProcessedArticle> {
+  // Use intelligent categorization instead of the query name
+  const category = categorizeArticle(article);
+  
   return {
     title: article.title || 'Untitled',
     link: article.url || '',
@@ -321,57 +343,82 @@ export async function GET(request: Request) {
       items: ProcessedArticle[];
     }> = {};
 
-    // Process each category
-    for (const [categoryName, query] of Object.entries(categoryQueries)) {
+    // Process each MediaStack query (only 2 queries instead of 4)
+    for (const [queryName, query] of Object.entries(mediaStackQueries)) {
       try {
-        console.log(`Fetching articles for category: ${categoryName}`);
+        console.log(`Fetching articles for query: ${queryName}`);
         
         // Fetch articles from MediaStack
         const mediaStackArticles = await fetchMediaStackArticles(query);
-        console.log(`Fetched ${mediaStackArticles.length} articles for ${categoryName}`);
+        console.log(`Fetched ${mediaStackArticles.length} articles for ${queryName}`);
 
         if (mediaStackArticles.length === 0) {
-          console.log(`No articles found for category ${categoryName}`);
+          console.log(`No articles found for query ${queryName}`);
           continue;
         }
 
-        // Transform to our format
+        // Transform to our format (with intelligent categorization)
         const transformedArticles = mediaStackArticles.map(article => 
-          transformMediaStackArticle(article, categoryName)
+          transformMediaStackArticle(article, queryName)
         );
 
         // Process with AI (in batches)
         const processedArticles = await processArticleBatch(transformedArticles);
-        console.log(`Processed ${processedArticles.length} articles for ${categoryName}`);
+        console.log(`Processed ${processedArticles.length} articles for ${queryName}`);
 
-        // Add to category
-        feedsByCategory[categoryName] = {
-          title: categoryName,
-          description: `Latest articles in the ${categoryName} category`,
-          sources: [...new Set(processedArticles.map(a => a.source))], // Unique sources
-          items: processedArticles
-        };
-
-        // Add to all articles
+        // Add to all articles for later categorization
         allArticles.push(...processedArticles);
 
-        // Add delay between categories to respect API rate limits (increased to 10 seconds)
-        console.log('Waiting 10 seconds before next category to respect rate limits...');
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        // Add much longer delay between queries to respect rate limits (60 seconds)
+        if (Object.keys(mediaStackQueries).indexOf(queryName) < Object.keys(mediaStackQueries).length - 1) {
+          console.log('Waiting 60 seconds before next query to respect rate limits...');
+          await new Promise(resolve => setTimeout(resolve, 60000));
+        }
 
-      } catch (categoryError) {
-        console.error(`Error processing category ${categoryName}:`, categoryError);
-        // Continue with other categories
-        
-        // Create empty category entry
-        feedsByCategory[categoryName] = {
-          title: categoryName,
-          description: `Latest articles in the ${categoryName} category`,
-          sources: [],
-          items: []
-        };
+      } catch (queryError) {
+        console.error(`Error processing query ${queryName}:`, queryError);
+        // Continue with other queries
       }
     }
+
+    // Initialize the category structure
+    feedsByCategory['UK HR News'] = {
+      title: 'UK HR News',
+      description: 'Latest articles in the UK HR News category',
+      sources: [],
+      items: []
+    };
+    feedsByCategory['Payroll News'] = {
+      title: 'Payroll News',
+      description: 'Latest articles in the Payroll News category',
+      sources: [],
+      items: []
+    };
+    feedsByCategory['Employee Benefits News'] = {
+      title: 'Employee Benefits News',
+      description: 'Latest articles in the Employee Benefits News category',
+      sources: [],
+      items: []
+    };
+    feedsByCategory['HR Legal News'] = {
+      title: 'HR Legal News',
+      description: 'Latest articles in the HR Legal News category',
+      sources: [],
+      items: []
+    };
+
+    // Distribute articles into categories and collect unique sources
+    allArticles.forEach(article => {
+      const category = article.category;
+      if (feedsByCategory[category]) {
+        feedsByCategory[category].items.push(article);
+        
+        // Add source if not already included
+        if (!feedsByCategory[category].sources.includes(article.source)) {
+          feedsByCategory[category].sources.push(article.source);
+        }
+      }
+    });
     // Deduplicate all articles
     const deduplicatedArticles = deduplicateArticles(allArticles);
     console.log(`Deduplicated to ${deduplicatedArticles.length} unique articles`);
