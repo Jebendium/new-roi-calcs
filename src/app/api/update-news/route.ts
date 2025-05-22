@@ -42,8 +42,7 @@ const categoryQueries: Record<string, {
     limit: 25, 
     languages: 'en',
     categories: 'business'
-  }
-};
+  },
   'Payroll News': { 
     keywords: 'payroll,HMRC,CIPP,PAYE,wages,salary,tax,national insurance,pension,auto-enrolment,RTI,P45,P60,IR35,payslip,payroll software', 
     countries: 'gb', 
@@ -66,7 +65,6 @@ const categoryQueries: Record<string, {
     categories: 'business'
   }
 };
-
 // Function to fetch articles from MediaStack for a specific query
 async function fetchMediaStackArticles(query: typeof categoryQueries[string]): Promise<MediaStackArticle[]> {
   const apiKey = process.env.MEDIASTACK_API_KEY;
@@ -104,7 +102,49 @@ async function fetchMediaStackArticles(query: typeof categoryQueries[string]): P
 
     if (!response.ok) {
       throw new Error(`MediaStack API error: ${response.status} ${response.statusText}`);
-    }Promises = batch.map(async (article) => {
+    }
+
+    const data: MediaStackResponse = await response.json();
+    
+    // Validate the response structure
+    if (!data || !Array.isArray(data.data)) {
+      throw new Error('Invalid response format from MediaStack API');
+    }
+
+    return data.data || [];
+  } catch (error) {
+    console.error('Error fetching from MediaStack:', error);
+    throw error;
+  }
+}
+
+// Function to transform MediaStack article to ProcessedArticle format
+function transformMediaStackArticle(article: MediaStackArticle, category: string): Partial<ProcessedArticle> {
+  return {
+    title: article.title || 'Untitled',
+    link: article.url || '',
+    pubDate: article.published_at || new Date().toISOString(),
+    content: article.description || '',
+    source: article.source || 'Unknown Source',
+    category: category,
+    summary: '', // Will be filled by AI processing
+    sentiment: 'neutral',
+    sentimentScore: 0.5,
+    topics: []
+  };
+}
+// Function to process articles with AI (batched for efficiency)
+async function processArticleBatch(
+  articles: Partial<ProcessedArticle>[], 
+  maxConcurrent: number = 3
+): Promise<ProcessedArticle[]> {
+  const processedArticles: ProcessedArticle[] = [];
+  
+  // Process articles in batches to avoid overwhelming the AI API
+  for (let i = 0; i < articles.length; i += maxConcurrent) {
+    const batch = articles.slice(i, i + maxConcurrent);
+    
+    const batchPromises = batch.map(async (article) => {
       try {
         // Process each article with AI
         const [summary, sentimentResult] = await Promise.all([
@@ -231,7 +271,8 @@ export async function GET(request: Request) {
 
       } catch (categoryError) {
         console.error(`Error processing category ${categoryName}:`, categoryError);
-        // Continue with other categories        
+        // Continue with other categories
+        
         // Create empty category entry
         feedsByCategory[categoryName] = {
           title: categoryName,
@@ -241,7 +282,6 @@ export async function GET(request: Request) {
         };
       }
     }
-
     // Deduplicate all articles
     const deduplicatedArticles = deduplicateArticles(allArticles);
     console.log(`Deduplicated to ${deduplicatedArticles.length} unique articles`);
@@ -291,7 +331,8 @@ export async function GET(request: Request) {
     await kv.set('dailyNewsData', finalResponse);
     
     const endTime = Date.now();
-    const duration = (endTime - startTime) / 1000;    
+    const duration = (endTime - startTime) / 1000;
+    
     console.log(`Daily news update job completed successfully in ${duration} seconds`);
     console.log(`Total articles processed: ${sortedArticles.length}`);
     console.log(`Categories: ${Object.keys(feedsByCategory).length}`);
@@ -311,7 +352,6 @@ export async function GET(request: Request) {
     }, { status: 500 });
   }
 }
-
 // Also support POST for manual triggers (with Authorization header)
 export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization');
