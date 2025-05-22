@@ -1,7 +1,73 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
 import { ProcessedArticle, EnhancedFeedResponse } from '../enhanced-rss/types';
 import { analyzeSentiment, summarizeText, extractTopics, createMasterSummary } from '../enhanced-rss/api-services';
+
+// Simple Redis client for Upstash
+class SimpleRedisClient {
+  private baseUrl: string;
+  private token: string;
+
+  constructor() {
+    this.baseUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+    this.token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+  }
+
+  async set(key: string, value: any): Promise<void> {
+    if (!this.baseUrl || !this.token) {
+      console.warn('Redis not configured, skipping storage');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/set/${key}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(value),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Redis SET failed: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error storing in Redis:', error);
+      throw error;
+    }
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    if (!this.baseUrl || !this.token) {
+      console.warn('Redis not configured, returning null');
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/get/${key}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error(`Redis GET failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.result;
+    } catch (error) {
+      console.error('Error retrieving from Redis:', error);
+      return null;
+    }
+  }
+}
+
+const redis = new SimpleRedisClient();
 
 // MediaStack API interface
 interface MediaStackArticle {
@@ -326,9 +392,9 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString()
     };
 
-    // Store in Vercel KV
-    console.log('Storing data in Vercel KV...');
-    await kv.set('dailyNewsData', finalResponse);
+    // Store in Redis (Upstash or Vercel KV)
+    console.log('Storing data in Redis...');
+    await redis.set('dailyNewsData', finalResponse);
     
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000;
