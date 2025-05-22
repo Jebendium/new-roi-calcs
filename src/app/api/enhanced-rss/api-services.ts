@@ -2,11 +2,18 @@
 import { ProcessedArticle } from './types';
 import OpenAI from 'openai';
 
-// Initialize DeepSeek client using OpenAI SDK (compatible API)
-const deepseekClient = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
+// Lazy initialization of DeepSeek client to avoid build-time issues
+let deepseekClient: OpenAI | null = null;
+
+function getDeepSeekClient(): OpenAI {
+  if (!deepseekClient) {
+    deepseekClient = new OpenAI({
+      baseURL: 'https://api.deepseek.com',
+      apiKey: process.env.DEEPSEEK_API_KEY || 'dummy-key-for-build',
+    });
+  }
+  return deepseekClient;
+}
 
 // Simple local sentiment analysis (fallback if API is too slow or fails)
 function localSentimentAnalysis(text: string): { sentiment: string; score: number } {
@@ -79,7 +86,7 @@ export async function analyzeSentiment(text: string): Promise<{ sentiment: strin
   
   try {
     // Use DeepSeek API for sentiment analysis
-    const response = await deepseekClient.chat.completions.create({
+    const response = await getDeepSeekClient().chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
@@ -141,7 +148,7 @@ export async function summarizeText(text: string): Promise<string> {
   
   try {
     // Use DeepSeek API for summarization
-    const response = await deepseekClient.chat.completions.create({
+    const response = await getDeepSeekClient().chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
@@ -223,7 +230,7 @@ export async function extractTopics(articles: ProcessedArticle[]): Promise<{ top
     ).join('\n\n');
     
     // Use DeepSeek API for topic extraction
-    const response = await deepseekClient.chat.completions.create({
+    const response = await getDeepSeekClient().chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
@@ -301,7 +308,7 @@ export async function createMasterSummary(allArticles: ProcessedArticle[]): Prom
     ).join('\n\n');
     
     // Use DeepSeek API for master summary generation
-    const response = await deepseekClient.chat.completions.create({
+    const response = await getDeepSeekClient().chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
