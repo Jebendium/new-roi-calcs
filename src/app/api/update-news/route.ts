@@ -93,7 +93,7 @@ interface MediaStackResponse {
   data: MediaStackArticle[];
 }
 
-// Simplified MediaStack queries using proper categories
+// Simplified MediaStack queries using proper categories (reduced limits for speed)
 const mediaStackQueries: Record<string, { 
   keywords: string; 
   countries: string; 
@@ -104,14 +104,14 @@ const mediaStackQueries: Record<string, {
   'Business News (HR/Payroll/Benefits)': { 
     keywords: 'HR,human resources,payroll,employee benefits,employment,workplace,staff,recruitment,pension,salary,wages', 
     countries: 'gb', 
-    limit: 40, 
+    limit: 20, // Reduced from 40
     languages: 'en',
     categories: 'business'
   },
   'Technology News (HR Tech)': { 
     keywords: 'HR technology,payroll software,workforce management,employee management,HRIS,HR systems,digital workplace', 
     countries: 'gb', 
-    limit: 20, 
+    limit: 10, // Reduced from 20
     languages: 'en',
     categories: 'technology'
   }
@@ -244,31 +244,28 @@ function transformMediaStackArticle(article: MediaStackArticle, originalQuery: s
     topics: []
   };
 }
-// Function to process articles with AI (batched for efficiency)
+// Function to process articles with AI (simplified for speed)
 async function processArticleBatch(
   articles: Partial<ProcessedArticle>[], 
-  maxConcurrent: number = 3
+  maxConcurrent: number = 5 // Increased concurrency
 ): Promise<ProcessedArticle[]> {
   const processedArticles: ProcessedArticle[] = [];
   
-  // Process articles in batches to avoid overwhelming the AI API
+  // Process articles in larger batches for speed
   for (let i = 0; i < articles.length; i += maxConcurrent) {
     const batch = articles.slice(i, i + maxConcurrent);
     
     const batchPromises = batch.map(async (article) => {
       try {
-        // Process each article with AI
-        const [summary, sentimentResult] = await Promise.all([
-          summarizeText(article.content || ''),
-          analyzeSentiment(article.content || '')
-        ]);
+        // Simplified processing - just summarize, skip sentiment for speed
+        const summary = await summarizeText(article.content || '');
 
         return {
           ...article,
-          summary,
-          sentiment: sentimentResult.sentiment,
-          sentimentScore: sentimentResult.score,
-          topics: [] // Topics will be extracted globally later
+          summary: summary || article.content?.substring(0, 200) + '...' || 'Summary not available',
+          sentiment: 'neutral', // Default for speed
+          sentimentScore: 0.5,   // Default for speed
+          topics: []
         } as ProcessedArticle;
       } catch (error) {
         console.error(`Error processing article "${article.title}":`, error);
@@ -293,10 +290,7 @@ async function processArticleBatch(
       }
     });
 
-    // Add small delay between batches to respect API rate limits
-    if (i + maxConcurrent < articles.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
+    // Remove delay between batches for speed
   }
 
   return processedArticles;
@@ -369,10 +363,10 @@ export async function GET(request: Request) {
         // Add to all articles for later categorization
         allArticles.push(...processedArticles);
 
-        // Add much longer delay between queries to respect rate limits (60 seconds)
+        // Add much shorter delay between queries for production (5 seconds instead of 60)
         if (Object.keys(mediaStackQueries).indexOf(queryName) < Object.keys(mediaStackQueries).length - 1) {
-          console.log('Waiting 60 seconds before next query to respect rate limits...');
-          await new Promise(resolve => setTimeout(resolve, 60000));
+          console.log('Waiting 5 seconds before next query to respect rate limits...');
+          await new Promise(resolve => setTimeout(resolve, 5000));
         }
 
       } catch (queryError) {
@@ -428,28 +422,38 @@ export async function GET(request: Request) {
       return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
     });
 
-    // Generate trending topics and master summary
+    // Generate trending topics and master summary (simplified for speed)
     let trendingTopics: { topic: string; count: number }[] = [];
     let masterSummary = '';
 
     if (sortedArticles.length > 0) {
-      try {
-        console.log('Extracting trending topics...');
-        trendingTopics = await extractTopics(sortedArticles.slice(0, 15));
-        console.log(`Extracted ${trendingTopics.length} trending topics`);
-      } catch (topicError) {
-        console.error('Error extracting topics:', topicError);
-        trendingTopics = [];
-      }
+      // Skip AI processing for speed - use simple keyword extraction
+      console.log('Creating simple trending topics...');
+      const topicCounts: { [key: string]: number } = {};
+      
+      // Extract topics from titles
+      sortedArticles.slice(0, 10).forEach((article) => {
+        const words = article.title.toLowerCase().split(/\W+/).filter(word => 
+          word.length > 3 && !['that', 'with', 'this', 'have', 'will', 'been', 'they', 'their', 'would', 'could', 'should'].includes(word)
+        );
+        
+        words.forEach(word => {
+          topicCounts[word] = (topicCounts[word] || 0) + 1;
+        });
+      });
+      
+      trendingTopics = Object.entries(topicCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([topic, count]) => ({ topic, count }));
 
-      try {
-        console.log('Creating master summary...');
-        masterSummary = await createMasterSummary(sortedArticles.slice(0, 10));
-        console.log('Master summary created successfully');
-      } catch (summaryError) {
-        console.error('Error creating master summary:', summaryError);
-        masterSummary = 'Industry news summary is being prepared. Please check back shortly.';
-      }
+      // Simple master summary without AI
+      console.log('Creating simple master summary...');
+      const topCategories = Object.keys(feedsByCategory).filter(cat => 
+        feedsByCategory[cat].items.length > 0
+      );
+      
+      masterSummary = `Today's industry news covers ${topCategories.join(', ').toLowerCase()} with ${sortedArticles.length} articles from various sources. Key topics include ${trendingTopics.slice(0, 3).map(t => t.topic).join(', ')}.`;
     } else {
       masterSummary = 'No articles available at the moment. Please check back later.';
     }
